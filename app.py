@@ -171,7 +171,8 @@ def api_create_project():
         'description': payload.get('description', ''),
         'team': payload.get('team', []),
         'tasks': payload.get('tasks', []),
-        'images': payload.get('images', [])
+        'images': payload.get('images', []),
+        'starred': payload.get('starred', False)
     }
     data.setdefault('projects', []).append(project_obj)
     # add project to members' project list if team provided
@@ -192,7 +193,7 @@ def api_update_project(name):
     if not project:
         return jsonify({'error': 'project not found'}), 404
     old_name = project.get('name')
-    for k in ['name', 'status', 'description', 'team', 'tasks', 'images']:
+    for k in ['name', 'status', 'description', 'team', 'tasks', 'images', 'starred']:
         if k in payload:
             project[k] = payload[k]
 

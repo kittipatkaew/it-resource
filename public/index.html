@@ -258,14 +258,32 @@
             box-shadow: 0 4px 16px rgba(102, 126, 234, 0.2);
         }
 
+        .star-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            z-index: 20;
+            background: transparent;
+            border: none;
+            font-size: 22px;
+            cursor: pointer;
+            color: #bbb;
+            transition: color 0.15s;
+            padding: 4px;
+        }
+        .star-btn.starred {
+            color: #ffb400;
+            text-shadow: 0 1px 0 rgba(0,0,0,0.1);
+        }
+
         .project-card:hover .delete-project-btn {
             opacity: 1;
         }
 
         .delete-project-btn {
             position: absolute;
-            top: 15px;
-            right: 15px;
+            top: 12px;
+            left: 12px;
             background: #f5576c;
             color: white;
             border: none;
@@ -279,7 +297,7 @@
             justify-content: center;
             opacity: 0;
             transition: all 0.3s;
-            z-index: 10;
+            z-index: 30;
         }
 
         .delete-project-btn:hover {
@@ -289,8 +307,8 @@
 
         .edit-project-btn {
             position: absolute;
-            top: 15px;
-            right: 50px;
+            top: 12px;
+            left: 52px;
             background: #667eea;
             color: white;
             border: none;
@@ -304,7 +322,7 @@
             justify-content: center;
             opacity: 0;
             transition: all 0.3s;
-            z-index: 10;
+            z-index: 30;
         }
 
         .edit-project-btn:hover {
@@ -627,6 +645,152 @@
 
         .calendar-cell:hover {
             transform: scale(1.05);
+        }
+
+        /* Calendar View Styles */
+        .calendar-view {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .calendar-week-header {
+            font-weight: 600;
+            text-align: center;
+            color: #667eea;
+            padding: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .calendar-day-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 12px;
+            transition: all 0.3s;
+            min-height: 180px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .calendar-day-card.other-month {
+            background: #f9f9f9;
+            opacity: 0.6;
+        }
+
+        .calendar-day-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 16px rgba(102, 126, 234, 0.2);
+        }
+
+        .calendar-day-header {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e0e0e0;
+            margin-bottom: 8px;
+        }
+
+        .calendar-day-header.today {
+            background: #667eea;
+            color: white;
+            padding: 6px 8px;
+            margin: -12px -12px 8px -12px;
+            border-radius: 12px 12px 0 0;
+            border-bottom: none;
+        }
+
+        .calendar-day-header.weekend {
+            color: #e74c3c;
+        }
+
+        .calendar-day-tasks {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .calendar-task-item {
+            background: #f8f9fa;
+            padding: 6px 8px;
+            border-left: 3px solid #667eea;
+            border-radius: 3px;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+
+        .calendar-task-item:hover {
+            background: #f0f0f0;
+            transform: translateX(2px);
+        }
+
+        .calendar-task-item.completed {
+            background: #e8f5e9;
+            border-left-color: #4caf50;
+            opacity: 0.7;
+        }
+
+        .calendar-task-item.overdue {
+            background: #ffebee;
+            border-left-color: #f44336;
+        }
+
+        .calendar-task-item.completed .calendar-task-text {
+            text-decoration: line-through;
+            color: #999;
+        }
+
+        .calendar-task-text {
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 2px;
+            word-break: break-word;
+        }
+
+        .calendar-task-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 10px;
+            color: #666;
+            margin-top: 2px;
+            flex-wrap: wrap;
+            gap: 3px;
+        }
+
+        .calendar-task-project {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-size: 10px;
+        }
+
+        .calendar-task-assignee {
+            background: #f3e5f5;
+            color: #7b1fa2;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-size: 10px;
+        }
+
+        .calendar-no-tasks {
+            color: #999;
+            font-size: 12px;
+            text-align: center;
+            padding: 10px 5px;
+        }
+
+        .calendar-empty-message {
+            grid-column: 1 / -1;
+            text-align: center;
+            color: #999;
+            padding: 40px;
+            font-size: 16px;
         }
 
         /* Add Resource Button */
@@ -1346,7 +1510,324 @@
             font-style: italic;
             padding: 8px;
         }
+
+        /* Subtask Styles */
+        .subtasks-container {
+            margin-left: 30px;
+            margin-top: 8px;
+            border-left: 2px solid #e0e0e0;
+            padding-left: 12px;
+        }
+
+        .subtask-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px;
+            background: #f5f5f5;
+            border-radius: 4px;
+            font-size: 12px;
+            transition: all 0.2s;
+            margin-bottom: 4px;
+        }
+
+        .subtask-item:hover {
+            background: #e8e8e8;
+        }
+
+        .subtask-checkbox {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: #667eea;
+        }
+
+        .subtask-text {
+            flex: 1;
+            color: #666;
+        }
+
+        .subtask-text.completed {
+            text-decoration: line-through;
+            color: #999;
+        }
+
+        .subtask-delete {
+            color: #999;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 0 4px;
+            opacity: 0.7;
+        }
+
+        .subtask-delete:hover {
+            color: #f5576c;
+            opacity: 1;
+        }
+
+        .add-subtask-btn {
+            background: transparent;
+            color: #667eea;
+            border: 1px dotted #667eea;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-left: 30px;
+            margin-top: 4px;
+        }
+
+        .add-subtask-btn:hover {
+            background: #f5f7fa;
+            border-style: solid;
+        }
+
+        .subtask-input-container {
+            display: flex;
+            gap: 6px;
+            margin-left: 30px;
+            margin-top: 4px;
+        }
+
+        .subtask-input {
+            flex: 1;
+            padding: 6px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .subtask-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .subtask-confirm {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .subtask-confirm:hover {
+            background: #5568d3;
+        }
+
+        .subtasks-progress {
+            font-size: 10px;
+            color: #999;
+            margin-left: 30px;
+            margin-top: 2px;
+        }
+
+        .subtask-assignee {
+            background: #667eea;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
+        .subtask-assignee:hover {
+            background: #5568d3;
+        }
+
+        .subtask-assignee-btn {
+            background: #e0e0e0;
+            color: #666;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: all 0.2s;
+        }
+
+        .subtask-assignee-btn:hover {
+            background: #667eea;
+            color: white;
+            opacity: 1;
+        }
+
+        .project-links {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px solid #f0f0f0;
+        }
+
+        .project-meeting-minutes {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px solid #f0f0f0;
+        }
+
+        .meeting-minutes-label {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 10px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .meeting-minutes-content {
+            background: #f9f9f9;
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 3px solid #667eea;
+            font-size: 13px;
+            color: #333;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .meeting-minutes-edit {
+            margin-top: 10px;
+        }
+
+        .meeting-minutes-textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #667eea;
+            border-radius: 6px;
+            font-size: 13px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        .meeting-minutes-empty {
+            color: #999;
+            font-style: italic;
+            padding: 12px;
+        }
+
+        .project-links-label {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .links-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .link-item {
+            background: #f9f9f9;
+            padding: 10px 12px;
+            border-radius: 6px;
+            border-left: 3px solid #667eea;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s;
+        }
+
+        .link-item:hover {
+            background: #f0f0f0;
+        }
+
+        .link-text {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 13px;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            transition: color 0.2s;
+        }
+
+        .link-text:hover {
+            color: #5568d3;
+            text-decoration: underline;
+        }
+
+        .remove-link-btn {
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 0;
+            margin-left: 10px;
+            transition: color 0.2s;
+        }
+
+        .remove-link-btn:hover {
+            color: #f5576c;
+        }
+
+        .add-link-input-container {
+            background: #f5f7fa;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+
+        .link-title-input,
+        .link-url-input {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: inherit;
+        }
+
+        .link-title-input:focus,
+        .link-url-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
     </style>
+    <script>
+        function exportTaskOverviewPDF() {
+            const member = document.getElementById('memberFilter') ? document.getElementById('memberFilter').value : '';
+            const status = document.getElementById('statusFilter') ? document.getElementById('statusFilter').value : '';
+            const project = document.getElementById('projectFilter') ? document.getElementById('projectFilter').value : '';
+            const title = 'Team Task Overview';
+            const filtersSummary = `Filters: ${member || 'All members'} | ${status || 'All statuses'} | ${project || 'All projects'}`;
+            const contentEl = document.getElementById('taskOverview');
+            if (!contentEl) {
+                alert('Nothing to export');
+                return;
+            }
+            const contentHtml = contentEl.innerHTML;
+            const style = `
+                <style>
+                    body{font-family: Arial, Helvetica, sans-serif; color:#222; padding:20px}
+                    h1{font-size:20px; margin-bottom:6px}
+                    .filters-summary{font-size:12px; color:#555; margin-bottom:12px}
+                    .member-overview-card{margin-bottom:14px; border-bottom:1px solid #e8e8e8; padding-bottom:10px}
+                    .task-detail-item{margin:6px 0}
+                </style>`;
+
+            const win = window.open('', '_blank');
+            win.document.write(`<!doctype html><html><head><meta charset="utf-8">${style}</head><body><h1>${title}</h1><div class="filters-summary">${filtersSummary}</div>${contentHtml}</body></html>`);
+            win.document.close();
+            win.focus();
+            // Give the new window a moment to render then open print dialog
+            setTimeout(() => {
+                win.print();
+                // try to close window after print dialog (may be blocked by some browsers)
+                setTimeout(() => win.close(), 700);
+            }, 250);
+        }
+    </script>
 </head>
 <body>
     <div class="container">
@@ -1357,6 +1838,7 @@
                 <button class="tab active" onclick="switchTab('team')">Team Overview</button>
                 <button class="tab" onclick="switchTab('projects')">Projects</button>
                 <button class="tab" onclick="switchTab('availability')">Task Monitor</button>
+                <button class="tab" onclick="switchTab('calendar')">📅 Calendar</button>
             </div>
             <div class="export-import-container" style="margin-top: 15px;">
                 <button class="export-btn" onclick="exportData()">📥 Export Data</button>
@@ -1375,6 +1857,29 @@
             <!-- Projects Tab -->
             <div id="projects" class="tab-content">
                 <button class="add-btn" onclick="addProject()">+ Add Project</button>
+                <div class="task-monitor-controls" style="margin-bottom: 20px;">
+                    <div class="filter-group">
+                        <div class="filter-label">Search by Project Name</div>
+                        <input type="text" class="filter-select" id="projectSearchInput" placeholder="Type project name..." oninput="renderProjects()" style="padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;">
+                    </div>
+                    <div class="filter-group">
+                        <div class="filter-label">Filter by Status</div>
+                        <select class="filter-select" id="projectStatusFilter" onchange="renderProjects()">
+                            <option value="">All Statuses</option>
+                            <option value="planning">📋 Planning</option>
+                            <option value="active">🚀 Active</option>
+                            <option value="on-hold">⏸️ On Hold</option>
+                            <option value="completed">✅ Completed</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <div class="filter-label">Filter by Team Member</div>
+                        <select class="filter-select" id="projectMemberFilter" onchange="renderProjects()">
+                            <option value="">All Team Members</option>
+                        </select>
+                    </div>
+                    <button class="clear-filter-btn" onclick="clearProjectFilters()">Clear Filters</button>
+                </div>
                 <div class="projects-grid" id="projectsGrid"></div>
             </div>
 
@@ -1397,9 +1902,43 @@
                             <option value="done">✅ Done Only</option>
                         </select>
                     </div>
+                    <div class="filter-group">
+                        <div class="filter-label">Filter by Project</div>
+                        <select class="filter-select" id="projectFilter" onchange="renderTaskOverview()">
+                            <option value="">All Projects</option>
+                        </select>
+                    </div>
                     <button class="clear-filter-btn" onclick="clearFilters()">Clear Filters</button>
+                    <button class="export-btn" onclick="exportTaskOverviewPDF()">Export PDF</button>
                 </div>
                 <div id="taskOverview"></div>
+            </div>
+
+            <!-- Calendar Tab -->
+            <div id="calendar" class="tab-content">
+                <div style="margin-bottom: 20px;">
+                    <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 20px;">
+                        <button class="clear-filter-btn" onclick="previousMonth()" style="background: #667eea; color: white; padding: 10px 15px;">← Previous</button>
+                        <h2 id="calendarMonthYear" style="flex: 1; text-align: center; color: #333; margin: 0;"></h2>
+                        <button class="clear-filter-btn" onclick="nextMonth()" style="background: #667eea; color: white; padding: 10px 15px;">Next →</button>
+                    </div>
+                    <div class="task-monitor-controls">
+                        <div class="filter-group">
+                            <div class="filter-label">Filter by Project</div>
+                            <select class="filter-select" id="calendarProjectFilter" onchange="renderCalendarView()">
+                                <option value="">All Projects</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <div class="filter-label">Filter by Team Member</div>
+                            <select class="filter-select" id="calendarMemberFilter" onchange="renderCalendarView()">
+                                <option value="">All Team Members</option>
+                            </select>
+                        </div>
+                        <button class="clear-filter-btn" onclick="clearCalendarFilters()">Clear Filters</button>
+                    </div>
+                </div>
+                <div class="calendar-view" id="calendarView"></div>
             </div>
         </div>
     </div>
@@ -1455,6 +1994,10 @@
             <div class="form-group">
                 <label>Description</label>
                 <input type="text" id="projectDesc" placeholder="Brief description">
+            </div>
+            <div class="form-group">
+                <label>Meeting Minutes (optional)</label>
+                <textarea id="projectMeetingMinutes" placeholder="Add meeting notes, decisions, action items, etc." style="width: 100%; height: 120px; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 13px; resize: vertical;"></textarea>
             </div>
             <div class="form-group">
                 <label>Project Images (optional)</label>
@@ -1558,10 +2101,20 @@
                 status: "active",
                 description: "Next-gen shopping experience",
                 team: ["Sarah Chen", "Lisa Wong"],
+                meetingMinutes: "",
                 tasks: [
-                    { id: 1, text: "Design product page mockups", completed: true, assignee: "Sarah Chen", startDate: "2026-02-01", endDate: "2026-02-05" },
-                    { id: 2, text: "Implement shopping cart", completed: false, assignee: "Sarah Chen", startDate: "2026-02-08", endDate: "2026-02-15" },
-                    { id: 3, text: "Set up payment gateway", completed: false, assignee: null, startDate: null, endDate: null }
+                    { id: 1, text: "Design product page mockups", completed: true, assignee: "Sarah Chen", startDate: "2026-02-01", endDate: "2026-02-05", subtasks: [
+                        { text: "Create wireframes", completed: true, assignee: "Sarah Chen" },
+                        { text: "Design mockups in Figma", completed: true, assignee: "Sarah Chen" },
+                        { text: "Get client feedback", completed: true, assignee: "Lisa Wong" }
+                    ] },
+                    { id: 2, text: "Implement shopping cart", completed: false, assignee: "Sarah Chen", startDate: "2026-02-08", endDate: "2026-02-15", subtasks: [
+                        { text: "Set up cart state management", completed: true, assignee: "Sarah Chen" },
+                        { text: "Build cart UI components", completed: true, assignee: "Sarah Chen" },
+                        { text: "Implement add/remove items", completed: false, assignee: "Sarah Chen" },
+                        { text: "Test cart functionality", completed: false, assignee: "Lisa Wong" }
+                    ] },
+                    { id: 3, text: "Set up payment gateway", completed: false, assignee: null, startDate: null, endDate: null, subtasks: [] }
                 ]
             },
             {
@@ -1569,9 +2122,19 @@
                 status: "active",
                 description: "Customer relationship management",
                 team: ["Mike Johnson", "Lisa Wong"],
+                meetingMinutes: "",
                 tasks: [
-                    { id: 1, text: "Database schema design", completed: true, assignee: "Mike Johnson", startDate: "2026-01-20", endDate: "2026-01-25" },
-                    { id: 2, text: "User authentication module", completed: false, assignee: "Lisa Wong", startDate: "2026-02-10", endDate: "2026-02-20" }
+                    { id: 1, text: "Database schema design", completed: true, assignee: "Mike Johnson", startDate: "2026-01-20", endDate: "2026-01-25", subtasks: [
+                        { text: "Define entities and relationships", completed: true, assignee: "Mike Johnson" },
+                        { text: "Create ER diagram", completed: true, assignee: "Mike Johnson" },
+                        { text: "Review with team", completed: true, assignee: "Lisa Wong" },
+                        { text: "Get stakeholder approval", completed: true, assignee: "Lisa Wong" }
+                    ] },
+                    { id: 2, text: "User authentication module", completed: false, assignee: "Lisa Wong", startDate: "2026-02-10", endDate: "2026-02-20", subtasks: [
+                        { text: "Implement login functionality", completed: false, assignee: "Lisa Wong" },
+                        { text: "Add password reset feature", completed: false, assignee: "Lisa Wong" },
+                        { text: "Set up user session management", completed: false, assignee: "Mike Johnson" }
+                    ] }
                 ]
             },
             {
@@ -1579,9 +2142,13 @@
                 status: "planning",
                 description: "iOS and Android application",
                 team: ["Sarah Chen", "David Park"],
+                meetingMinutes: "",
                 tasks: []
             }
         ];
+
+        // Calendar state
+        let currentCalendarDate = new Date();
 
         // Tab switching
         function switchTab(tabName) {
@@ -1593,6 +2160,10 @@
             
             if (tabName === 'availability') {
                 renderTaskOverview();
+            } else if (tabName === 'projects') {
+                renderProjects();
+            } else if (tabName === 'calendar') {
+                renderCalendarView();
             }
         }
 
@@ -1658,14 +2229,109 @@
             });
         }
 
+        function toggleStar(projectIndex) {
+            const project = projects[projectIndex];
+            const newVal = !project.starred;
+            // optimistic update
+            project.starred = newVal;
+            renderProjects();
+
+            // persist to server
+            fetch('/api/projects/' + encodeURIComponent(project.name), {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ starred: newVal })
+            }).then(res => res.json()).then(updated => {
+                // sync local copy if server returned updated project
+                const idx = projects.findIndex(p => p.name === updated.name);
+                if (idx >= 0) projects[idx] = updated;
+                renderProjects();
+            }).catch(err => {
+                console.error('Failed to persist star:', err);
+                // revert optimistic
+                project.starred = !newVal;
+                renderProjects();
+            });
+        }
+
+        // Load server data (projects + teamMembers) if available
+        function loadServerData() {
+            fetch('/api/data').then(r => r.json()).then(data => {
+                if (data.teamMembers) teamMembers = data.teamMembers;
+                if (data.projects) projects = data.projects;
+                renderProjects();
+            }).catch(err => {
+                console.log('Server data not available, using sample data');
+                renderProjects();
+            });
+        }
+
+        // attempt to load server data immediately
+        loadServerData();
+
         // Render projects
         function renderProjects() {
             const grid = document.getElementById('projectsGrid');
-            grid.innerHTML = projects.map((project, pIndex) => `
+            
+            // Update team member filter dropdown
+            const memberFilter = document.getElementById('projectMemberFilter');
+            if (memberFilter) {
+                const currentMemberFilter = memberFilter.value;
+                memberFilter.innerHTML = '<option value="">All Team Members</option>';
+                teamMembers.forEach(member => {
+                    const option = document.createElement('option');
+                    option.value = member.name;
+                    option.textContent = member.name;
+                    if (currentMemberFilter === member.name) {
+                        option.selected = true;
+                    }
+                    memberFilter.appendChild(option);
+                });
+            }
+            
+            // Get filter values
+            const searchQuery = document.getElementById('projectSearchInput') ? document.getElementById('projectSearchInput').value.toLowerCase() : '';
+            const selectedStatus = document.getElementById('projectStatusFilter') ? document.getElementById('projectStatusFilter').value : '';
+            const selectedMember = document.getElementById('projectMemberFilter') ? document.getElementById('projectMemberFilter').value : '';
+            
+            // Filter projects
+            let filteredProjects = projects;
+            if (searchQuery) {
+                filteredProjects = filteredProjects.filter(p => p.name.toLowerCase().includes(searchQuery));
+            }
+            if (selectedStatus) {
+                filteredProjects = filteredProjects.filter(p => p.status === selectedStatus);
+            }
+            if (selectedMember) {
+                filteredProjects = filteredProjects.filter(p => p.team.includes(selectedMember));
+            }
+
+            // Sort starred/urgent projects to the top
+            filteredProjects.sort((a, b) => (b.starred ? 1 : 0) - (a.starred ? 1 : 0));
+            
+            grid.innerHTML = filteredProjects.map((project, filteredIndex) => {
+                const pIndex = projects.indexOf(project);
+                return `
                 <div class="project-card" data-project="${project.name}" data-index="${pIndex}">
+                    <button class="star-btn ${project.starred ? 'starred' : ''}" onclick="toggleStar(${pIndex})" title="${project.starred ? 'Unmark urgent' : 'Mark urgent'}">${project.starred ? '★' : '☆'}</button>
                     <button class="edit-project-btn" onclick="editProject(${pIndex})" title="Edit project">✎</button>
                     <button class="delete-project-btn" onclick="deleteProject(${pIndex})" title="Delete project">×</button>
                     
+                    <div class="project-header">
+                        <div class="project-title">${project.name}</div>
+                        <div style="position: relative;">
+                            <div class="project-status status-${project.status}" onclick="toggleStatusDropdown(${pIndex})" title="Click to change status">
+                                ${project.status.charAt(0).toUpperCase() + project.status.slice(1).replace('-', ' ')}
+                            </div>
+                            <div id="statusDropdown${pIndex}" class="status-dropdown" style="display: none;">
+                                <div class="status-option" onclick="updateProjectStatus(${pIndex}, 'planning')">📋 Planning</div>
+                                <div class="status-option" onclick="updateProjectStatus(${pIndex}, 'active')">🚀 Active</div>
+                                <div class="status-option" onclick="updateProjectStatus(${pIndex}, 'on-hold')">⏸️ On Hold</div>
+                                <div class="status-option" onclick="updateProjectStatus(${pIndex}, 'completed')">✅ Completed</div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="project-image-container">
                         ${project.images && project.images.length > 0 ? `
                             <div class="project-images-grid">
@@ -1686,21 +2352,6 @@
                         `}
                     </div>
                     <input type="file" id="projectImageUpload${pIndex}" accept="image/*" multiple style="display: none;" onchange="handleProjectImageUpload(event, ${pIndex})">
-                    
-                    <div class="project-header">
-                        <div class="project-title">${project.name}</div>
-                        <div style="position: relative;">
-                            <div class="project-status status-${project.status}" onclick="toggleStatusDropdown(${pIndex})" title="Click to change status">
-                                ${project.status.charAt(0).toUpperCase() + project.status.slice(1).replace('-', ' ')}
-                            </div>
-                            <div id="statusDropdown${pIndex}" class="status-dropdown" style="display: none;">
-                                <div class="status-option" onclick="updateProjectStatus(${pIndex}, 'planning')">📋 Planning</div>
-                                <div class="status-option" onclick="updateProjectStatus(${pIndex}, 'active')">🚀 Active</div>
-                                <div class="status-option" onclick="updateProjectStatus(${pIndex}, 'on-hold')">⏸️ On Hold</div>
-                                <div class="status-option" onclick="updateProjectStatus(${pIndex}, 'completed')">✅ Completed</div>
-                            </div>
-                        </div>
-                    </div>
                     <div style="color: #666; font-size: 14px; margin-bottom: 15px;">
                         ${project.description}
                     </div>
@@ -1717,6 +2368,44 @@
                         </div>
                         <button class="assign-member-btn" onclick="openAssignModal('${project.name}')">+ Assign Member</button>
                     </div>
+                    <div class="project-meeting-minutes">
+                        <div class="meeting-minutes-label" style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>📋 Meeting Minutes</span>
+                            <button class="edit-meeting-btn" onclick="toggleMeetingMinutesEdit(${pIndex})" title="Edit meeting minutes" style="background: #667eea; color: white; border: none; padding: 4px 12px; border-radius: 4px; font-size: 12px; cursor: pointer;">✎ Edit</button>
+                        </div>
+                        <div id="meetingMinutes${pIndex}" class="meeting-minutes-content" onclick="toggleMeetingMinutesEdit(${pIndex})" style="cursor: pointer;">
+                            ${project.meetingMinutes ? `<div style="white-space: pre-wrap; word-break: break-word;">${project.meetingMinutes}</div>` : `<div class="meeting-minutes-empty">No meeting minutes added yet</div>`}
+                        </div>
+                        <div id="meetingMinutesEdit${pIndex}" class="meeting-minutes-edit" style="display: none;">
+                            <textarea id="meetingMinutesTextarea${pIndex}" class="meeting-minutes-textarea" style="width: 100%; height: 150px; padding: 10px; border: 2px solid #667eea; border-radius: 6px; font-size: 13px; resize: vertical; font-family: inherit;">${project.meetingMinutes || ''}</textarea>
+                            <div style="display: flex; gap: 8px; margin-top: 10px;">
+                                <button class="task-add-confirm" onclick="saveMeetingMinutes(${pIndex})" style="flex: 1;">Save</button>
+                                <button style="flex: 1; background: #e0e0e0; color: #666; border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; cursor: pointer;" onclick="toggleMeetingMinutesEdit(${pIndex})">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="project-links">
+                        <div class="project-links-label">Links (${(project.links || []).length})</div>
+                        <div class="links-list">
+                            ${(project.links || []).length > 0 ? (project.links || []).map((link, lIndex) => `
+                                <div class="link-item">
+                                    <a href="${link.url}" target="_blank" rel="noopener noreferrer" class="link-text" title="${link.title || link.url}">
+                                        🔗 ${link.title || link.url}
+                                    </a>
+                                    <button class="remove-link-btn" onclick="removeProjectLink(${pIndex}, ${lIndex})" title="Remove link">×</button>
+                                </div>
+                            `).join('') : '<div style="color: #999; font-size: 13px;">No links yet</div>'}
+                        </div>
+                        <div class="add-link-input-container" id="linkInput${pIndex}" style="display: none;">
+                            <input type="text" class="link-title-input" id="linkTitle${pIndex}" placeholder="Link title (optional)" style="margin-bottom: 8px;">
+                            <input type="url" class="link-url-input" id="linkUrl${pIndex}" placeholder="https://example.com">
+                            <div style="display: flex; gap: 8px; margin-top: 8px;">
+                                <button class="task-add-confirm" onclick="addProjectLink(${pIndex})" style="flex: 1;">Add Link</button>
+                                <button style="flex: 1; background: #e0e0e0; color: #666; border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; cursor: pointer;" onclick="toggleLinkInput(${pIndex})">Cancel</button>
+                            </div>
+                        </div>
+                        <button class="assign-member-btn" onclick="toggleLinkInput(${pIndex})">+ Add Link</button>
+                    </div>
                     <div class="tasks-section">
                         <div class="tasks-header">
                             <span class="tasks-label">Tasks (${project.tasks.filter(t => t.completed).length}/${project.tasks.length})</span>
@@ -1731,6 +2420,8 @@
                                 const isOverdue = task.endDate && new Date(task.endDate) < new Date() && !task.completed;
                                 const formattedStart = task.startDate ? new Date(task.startDate).toLocaleDateString('en-US', {month: 'short', day: 'numeric'}) : null;
                                 const formattedEnd = task.endDate ? new Date(task.endDate).toLocaleDateString('en-US', {month: 'short', day: 'numeric'}) : null;
+                                const subtasks = task.subtasks || [];
+                                const completedSubtasks = subtasks.filter(s => s.completed).length;
                                 
                                 return `
                                 <div class="task-item">
@@ -1743,6 +2434,30 @@
                                                 : `<span class="task-date-input" onclick="showDatePicker(event, ${pIndex}, ${tIndex})">+ Add dates</span>`
                                             }
                                         </div>
+                                        ${subtasks.length > 0 ? `
+                                            <div class="subtasks-container">
+                                                ${subtasks.map((subtask, sIndex) => `
+                                                    <div class="subtask-item">
+                                                        <input type="checkbox" class="subtask-checkbox" ${subtask.completed ? 'checked' : ''} onchange="toggleSubtask(${pIndex}, ${tIndex}, ${sIndex})">
+                                                        <span class="subtask-text ${subtask.completed ? 'completed' : ''}">${subtask.text}</span>
+                                                        ${subtask.assignee 
+                                                            ? `<span class="subtask-assignee" onclick="showSubtaskAssigneeDropdown(event, ${pIndex}, ${tIndex}, ${sIndex})" title="Click to reassign">${subtask.assignee.split(' ')[0]}</span>`
+                                                            : `<span class="subtask-assignee-btn" onclick="showSubtaskAssigneeDropdown(event, ${pIndex}, ${tIndex}, ${sIndex})" title="Assign to team member">Assign</span>`
+                                                        }
+                                                        <span class="subtask-delete" onclick="deleteSubtask(${pIndex}, ${tIndex}, ${sIndex})" title="Delete subtask">×</span>
+                                                    </div>
+                                                `).join('')}
+                                            </div>
+                                            <div class="subtasks-progress">${completedSubtasks}/${subtasks.length} subtasks done</div>
+                                        ` : ''}
+                                        <div id="subtaskInput${pIndex}-${tIndex}" style="display: none;">
+                                            <div class="subtask-input-container">
+                                                <input type="text" class="subtask-input" id="subtaskText${pIndex}-${tIndex}" placeholder="Add a subtask..." onkeypress="if(event.key === 'Enter') addSubtask(${pIndex}, ${tIndex})">
+                                                <button class="subtask-confirm" onclick="addSubtask(${pIndex}, ${tIndex})">Add</button>
+                                                <button style="background: #e0e0e0; color: #666; border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; cursor: pointer;" onclick="toggleSubtaskInput(${pIndex}, ${tIndex})">Cancel</button>
+                                            </div>
+                                        </div>
+                                        ${subtasks.length === 0 ? `<button class="add-subtask-btn" onclick="toggleSubtaskInput(${pIndex}, ${tIndex})">+ Add Subtask</button>` : `<button class="add-subtask-btn" onclick="toggleSubtaskInput(${pIndex}, ${tIndex})">+ Add another</button>`}
                                     </div>
                                     ${task.assignee 
                                         ? `<span class="task-assignee" onclick="showAssigneeDropdown(event, ${pIndex}, ${tIndex})">${task.assignee.split(' ')[0]}</span>`
@@ -1755,7 +2470,12 @@
                         </div>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
+            
+            // Show "no results" message if no projects match the filter
+            if (filteredProjects.length === 0) {
+                grid.innerHTML = '<div class="no-tasks-message">No projects match the selected filters.</div>';
+            }
 
             // Add drop event listeners
             document.querySelectorAll('.project-card').forEach(card => {
@@ -1783,6 +2503,20 @@
                 memberFilter.appendChild(option);
             });
             
+            // Update project filter dropdown
+            const projectFilter = document.getElementById('projectFilter');
+            const currentProjectFilter = projectFilter.value;
+            projectFilter.innerHTML = '<option value="">All Projects</option>';
+            projects.forEach(project => {
+                const option = document.createElement('option');
+                option.value = project.name;
+                option.textContent = project.name;
+                if (currentProjectFilter === project.name) {
+                    option.selected = true;
+                }
+                projectFilter.appendChild(option);
+            });
+            
             if (teamMembers.length === 0) {
                 container.innerHTML = '<div class="no-tasks-message">No team members yet. Add team members to see their task overview.</div>';
                 return;
@@ -1791,6 +2525,7 @@
             // Get filter values
             const selectedMember = document.getElementById('memberFilter').value;
             const selectedStatus = document.getElementById('statusFilter').value;
+            const selectedProject = document.getElementById('projectFilter').value;
             
             // Filter members
             let filteredMembers = teamMembers;
@@ -1803,7 +2538,7 @@
             
             filteredMembers.forEach(member => {
                 // Get all tasks assigned to this member across all projects
-                const memberTasks = [];
+                let memberTasks = [];
                 projects.forEach(project => {
                     if (project.tasks) {
                         project.tasks.forEach(task => {
@@ -1817,6 +2552,32 @@
                         });
                     }
                 });
+
+                // Get all subtasks assigned to this member across all projects/tasks
+                let memberSubtasks = [];
+                projects.forEach(project => {
+                    if (project.tasks) {
+                        project.tasks.forEach(task => {
+                            const subtasks = task.subtasks || [];
+                            subtasks.forEach(subtask => {
+                                if (subtask.assignee === member.name) {
+                                    memberSubtasks.push({
+                                        ...subtask,
+                                        parentTaskText: task.text,
+                                        parentStartDate: task.startDate || null,
+                                        parentEndDate: task.endDate || null,
+                                        projectName: project.name
+                                    });
+                                }
+                            });
+                        });
+                    }
+                });
+                
+                // Apply project filter
+                if (selectedProject) {
+                    memberTasks = memberTasks.filter(t => t.projectName === selectedProject);
+                }
                 
                 // Calculate statistics
                 const today = new Date();
@@ -1974,6 +2735,84 @@
                 } else {
                     html += '<div class="no-tasks-message">No tasks assigned yet</div>';
                 }
+                // Show subtasks assigned to this member
+                if (memberSubtasks.length > 0) {
+                    // classify subtasks
+                    const todaySub = new Date();
+                    todaySub.setHours(0,0,0,0);
+                    const doneSubs = memberSubtasks.filter(s => s.completed);
+                    const onPlanSubs = memberSubtasks.filter(s => {
+                        if (s.completed) return false;
+                        if (!s.parentEndDate) return true;
+                        const endDate = new Date(s.parentEndDate);
+                        endDate.setHours(0,0,0,0);
+                        return endDate >= todaySub;
+                    });
+                    const delayedSubs = memberSubtasks.filter(s => {
+                        if (s.completed) return false;
+                        if (!s.parentEndDate) return false;
+                        const endDate = new Date(s.parentEndDate);
+                        endDate.setHours(0,0,0,0);
+                        return endDate < todaySub;
+                    });
+
+                    html += `
+                        <div class="task-detail-section">
+                            <div class="task-detail-header">🔸 Subtasks Assigned (${memberSubtasks.length})</div>
+                            <div class="task-detail-list">
+                    `;
+
+                    // delayed subtasks
+                    if (delayedSubs.length > 0) {
+                        delayedSubs.forEach(s => {
+                            const daysOverdue = s.parentEndDate ? Math.floor((new Date() - new Date(s.parentEndDate)) / (1000 * 60 * 60 * 24)) : 0;
+                            html += `
+                                <div class="task-detail-item delayed">
+                                    <div class="task-detail-title">${s.text} <span style="font-weight:600;color:#dc3545;">(in: ${s.parentTaskText})</span></div>
+                                    <div class="task-detail-meta">
+                                        <span>📁 ${s.projectName}</span>
+                                        ${s.parentStartDate && s.parentEndDate ? `<span>📅 ${new Date(s.parentStartDate).toLocaleDateString()} → ${new Date(s.parentEndDate).toLocaleDateString()}</span>` : ''}
+                                        <span style="color: #dc3545; font-weight: 600;">⏰ ${daysOverdue} day${daysOverdue !== 1 ? 's' : ''} overdue</span>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    }
+
+                    // onplan subtasks
+                    if (onPlanSubs.length > 0) {
+                        onPlanSubs.forEach(s => {
+                            html += `
+                                <div class="task-detail-item onplan">
+                                    <div class="task-detail-title">${s.text} <span style="font-weight:600;color:#666;">(in: ${s.parentTaskText})</span></div>
+                                    <div class="task-detail-meta">
+                                        <span>📁 ${s.projectName}</span>
+                                        ${s.parentStartDate && s.parentEndDate ? `<span>📅 ${new Date(s.parentStartDate).toLocaleDateString()} → ${new Date(s.parentEndDate).toLocaleDateString()}</span>` : '<span>📅 No deadline set</span>'}
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    }
+
+                    // done subtasks
+                    if (doneSubs.length > 0) {
+                        doneSubs.forEach(s => {
+                            html += `
+                                <div class="task-detail-item done">
+                                    <div class="task-detail-title completed">${s.text} <span style="font-weight:600;color:#666;">(in: ${s.parentTaskText})</span></div>
+                                    <div class="task-detail-meta">
+                                        <span>📁 ${s.projectName}</span>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    }
+
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                }
                 
                 html += '</div>';
             });
@@ -1988,7 +2827,218 @@
         function clearFilters() {
             document.getElementById('memberFilter').value = '';
             document.getElementById('statusFilter').value = '';
+            document.getElementById('projectFilter').value = '';
             renderTaskOverview();
+        }
+
+        function clearProjectFilters() {
+            if (document.getElementById('projectSearchInput')) {
+                document.getElementById('projectSearchInput').value = '';
+            }
+            if (document.getElementById('projectStatusFilter')) {
+                document.getElementById('projectStatusFilter').value = '';
+            }
+            if (document.getElementById('projectMemberFilter')) {
+                document.getElementById('projectMemberFilter').value = '';
+            }
+            renderProjects();
+        }
+
+        // Calendar functions
+        function renderCalendarView() {
+            const container = document.getElementById('calendarView');
+            const monthYearEl = document.getElementById('calendarMonthYear');
+            
+            // Update month/year display
+            const monthName = currentCalendarDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+            monthYearEl.textContent = monthName;
+            
+            // Update project filter dropdown
+            const projectFilter = document.getElementById('calendarProjectFilter');
+            const currentProjectFilter = projectFilter.value;
+            projectFilter.innerHTML = '<option value="">All Projects</option>';
+            projects.forEach(project => {
+                const option = document.createElement('option');
+                option.value = project.name;
+                option.textContent = project.name;
+                if (currentProjectFilter === project.name) {
+                    option.selected = true;
+                }
+                projectFilter.appendChild(option);
+            });
+            
+            // Update member filter dropdown
+            const memberFilter = document.getElementById('calendarMemberFilter');
+            const currentMemberFilter = memberFilter.value;
+            memberFilter.innerHTML = '<option value="">All Team Members</option>';
+            teamMembers.forEach(member => {
+                const option = document.createElement('option');
+                option.value = member.name;
+                option.textContent = member.name;
+                if (currentMemberFilter === member.name) {
+                    option.selected = true;
+                }
+                memberFilter.appendChild(option);
+            });
+            
+            // Get filter values
+            const selectedProject = document.getElementById('calendarProjectFilter').value;
+            const selectedMember = document.getElementById('calendarMemberFilter').value;
+            
+            // Get all tasks for the current month
+            const year = currentCalendarDate.getFullYear();
+            const month = currentCalendarDate.getMonth();
+            
+            // Create a map of dates to tasks
+            const tasksByDate = {};
+            
+            // Initialize all days in month
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                tasksByDate[dateKey] = [];
+            }
+            
+            // Collect tasks that fall within the month
+            projects.forEach((project, projectIndex) => {
+                // Filter by project if selected
+                if (selectedProject && project.name !== selectedProject) {
+                    return;
+                }
+                
+                project.tasks.forEach(task => {
+                    if (!task.startDate || !task.endDate) return;
+                    
+                    // Filter by member if selected
+                    if (selectedMember && task.assignee !== selectedMember) {
+                        return;
+                    }
+                    
+                    const startDate = new Date(task.startDate);
+                    const endDate = new Date(task.endDate);
+                    const currentDate = new Date(year, month, 1);
+                    const monthEnd = new Date(year, month + 1, 0);
+                    
+                    // Check if task overlaps with current month
+                    if (startDate <= monthEnd && endDate >= currentDate) {
+                        // Add task to all days within the month range
+                        let checkDate = new Date(Math.max(startDate, currentDate));
+                        const lastDate = new Date(Math.min(endDate, monthEnd));
+                        
+                        while (checkDate <= lastDate) {
+                            const dateKey = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`;
+                            tasksByDate[dateKey].push({
+                                text: task.text,
+                                projectName: project.name,
+                                completed: task.completed,
+                                assignee: task.assignee,
+                                startDate: task.startDate,
+                                endDate: task.endDate
+                            });
+                            checkDate.setDate(checkDate.getDate() + 1);
+                        }
+                    }
+                });
+            });
+            
+            // Get first day of month (0 = Sunday, 1 = Monday, etc.)
+            const firstDay = new Date(year, month, 1).getDay();
+            // Convert to Monday-based week (Monday = 0, Sunday = 6)
+            const firstDayMonday = (firstDay === 0) ? 6 : firstDay - 1;
+            
+            // Calculate the start date (might be from previous month)
+            const startDate = new Date(year, month, 1);
+            startDate.setDate(startDate.getDate() - firstDayMonday);
+            
+            // Day names starting from Monday
+            const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+            
+            // Render calendar with week header
+            let html = '';
+            
+            // Add week headers
+            html += '<div class="calendar-week-header">Mon</div>';
+            html += '<div class="calendar-week-header">Tue</div>';
+            html += '<div class="calendar-week-header">Wed</div>';
+            html += '<div class="calendar-week-header">Thu</div>';
+            html += '<div class="calendar-week-header">Fri</div>';
+            html += '<div class="calendar-week-header">Sat</div>';
+            html += '<div class="calendar-week-header">Sun</div>';
+            
+            // Generate calendar days
+            let currentDate = new Date(startDate);
+            const today = new Date();
+            const monthEnd = new Date(year, month + 1, 0);
+            
+            // Continue until we've covered the entire month and completed the last week
+            while (true) {
+                const dateKey = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`;
+                const dayTasks = tasksByDate[dateKey] || [];
+                
+                const isToday = currentDate.getDate() === today.getDate() &&
+                               currentDate.getMonth() === today.getMonth() &&
+                               currentDate.getFullYear() === today.getFullYear();
+                
+                const isOtherMonth = currentDate.getMonth() !== month;
+                const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
+                
+                html += `
+                    <div class="calendar-day-card ${isToday ? 'today' : ''} ${isOtherMonth ? 'other-month' : ''}">
+                        <div class="calendar-day-header ${isToday ? 'today' : ''} ${isWeekend && !isToday ? 'weekend' : ''}">
+                            ${currentDate.toLocaleDateString('default', { day: 'numeric' })}
+                            ${isToday ? '⭐' : ''}
+                        </div>
+                        <div class="calendar-day-tasks">
+                            ${dayTasks.length > 0 ? 
+                                dayTasks.map(task => {
+                                    const endTaskDate = new Date(task.endDate);
+                                    const isOverdue = endTaskDate < new Date() && !task.completed;
+                                    return `
+                                        <div class="calendar-task-item ${task.completed ? 'completed' : ''} ${isOverdue ? 'overdue' : ''}">
+                                            <div class="calendar-task-text">${task.text}</div>
+                                            <div class="calendar-task-meta">
+                                                <span class="calendar-task-project">${task.projectName}</span>
+                                                ${task.assignee ? `<span class="calendar-task-assignee">${task.assignee.split(' ')[0]}</span>` : ''}
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('')
+                            : `<div class="calendar-no-tasks">-</div>`
+                            }
+                        </div>
+                    </div>
+                `;
+                
+                // Move to next day
+                currentDate.setDate(currentDate.getDate() + 1);
+                
+                // Stop when we've passed the month end and completed the current week (Sunday)
+                if (currentDate > monthEnd && currentDate.getDay() === 1) {
+                    break;
+                }
+            }
+            
+            if (daysInMonth === 0) {
+                html = '<div class="calendar-empty-message">No days in this month</div>';
+            }
+            
+            container.innerHTML = html;
+        }
+
+        function previousMonth() {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+            renderCalendarView();
+        }
+
+        function nextMonth() {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+            renderCalendarView();
+        }
+
+        function clearCalendarFilters() {
+            document.getElementById('calendarProjectFilter').value = '';
+            document.getElementById('calendarMemberFilter').value = '';
+            renderCalendarView();
         }
 
         // Add team member
@@ -2112,6 +3162,7 @@
             document.getElementById('projectName').value = '';
             document.getElementById('projectStatus').value = 'planning';
             document.getElementById('projectDesc').value = '';
+            document.getElementById('projectMeetingMinutes').value = '';
             document.getElementById('projectImage').value = '';
             openModal('project');
         }
@@ -2125,6 +3176,7 @@
             document.getElementById('projectName').value = project.name;
             document.getElementById('projectStatus').value = project.status;
             document.getElementById('projectDesc').value = project.description;
+            document.getElementById('projectMeetingMinutes').value = project.meetingMinutes || '';
             document.getElementById('projectImage').value = '';
             
             openModal('project');
@@ -2134,6 +3186,7 @@
             const name = document.getElementById('projectName').value.trim();
             const status = document.getElementById('projectStatus').value;
             const description = document.getElementById('projectDesc').value.trim();
+            const meetingMinutes = document.getElementById('projectMeetingMinutes').value.trim();
             const imageFiles = document.getElementById('projectImage').files;
             
             if (!name || !description) {
@@ -2164,6 +3217,7 @@
                     project.name = name;
                     project.status = status;
                     project.description = description;
+                    project.meetingMinutes = meetingMinutes;
                     
                     // Add new images to existing ones
                     if (imageDataArray.length > 0) {
@@ -2190,8 +3244,10 @@
                         name,
                         status,
                         description,
+                        meetingMinutes,
                         team: [],
                         tasks: [],
+                        links: [],
                         images: imageDataArray
                     });
                 }
@@ -2264,6 +3320,90 @@
                 });
             }
         });
+
+        // Link management
+        function toggleLinkInput(projectIndex) {
+            const linkInput = document.getElementById(`linkInput${projectIndex}`);
+            if (linkInput) {
+                linkInput.style.display = linkInput.style.display === 'none' ? 'block' : 'none';
+                if (linkInput.style.display === 'block') {
+                    document.getElementById(`linkTitle${projectIndex}`).focus();
+                }
+            }
+        }
+
+        function addProjectLink(projectIndex) {
+            const title = document.getElementById(`linkTitle${projectIndex}`).value.trim();
+            const url = document.getElementById(`linkUrl${projectIndex}`).value.trim();
+            
+            if (!url) {
+                alert('Please enter a valid URL');
+                return;
+            }
+            
+            // Add https:// if no protocol specified
+            let fullUrl = url;
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                fullUrl = 'https://' + url;
+            }
+            
+            if (!projects[projectIndex].links) {
+                projects[projectIndex].links = [];
+            }
+            
+            projects[projectIndex].links.push({
+                title: title || fullUrl,
+                url: fullUrl
+            });
+            
+            // Clear inputs
+            document.getElementById(`linkTitle${projectIndex}`).value = '';
+            document.getElementById(`linkUrl${projectIndex}`).value = '';
+            
+            // Hide input and re-render
+            toggleLinkInput(projectIndex);
+            renderProjects();
+            persistData();
+        }
+
+        function removeProjectLink(projectIndex, linkIndex) {
+            if (confirm('Remove this link?')) {
+                projects[projectIndex].links.splice(linkIndex, 1);
+                renderProjects();
+                persistData();
+            }
+        }
+
+        function toggleMeetingMinutesEdit(projectIndex) {
+            const contentDiv = document.getElementById(`meetingMinutes${projectIndex}`);
+            const editDiv = document.getElementById(`meetingMinutesEdit${projectIndex}`);
+            
+            if (editDiv.style.display === 'none') {
+                contentDiv.style.display = 'none';
+                editDiv.style.display = 'block';
+            } else {
+                contentDiv.style.display = 'block';
+                editDiv.style.display = 'none';
+            }
+        }
+
+        function saveMeetingMinutes(projectIndex) {
+            const textarea = document.getElementById(`meetingMinutesTextarea${projectIndex}`);
+            const meetingMinutes = textarea.value.trim();
+            
+            projects[projectIndex].meetingMinutes = meetingMinutes;
+            
+            titleToggle = document.getElementById(`meetingMinutes${projectIndex}`);
+            if (meetingMinutes) {
+                titleToggle.innerHTML = `<div style="white-space: pre-wrap; word-break: break-word;">${meetingMinutes}</div>`;
+            } else {
+                titleToggle.innerHTML = `<div class="meeting-minutes-empty">No meeting minutes added yet</div>`;
+            }
+            
+            toggleMeetingMinutesEdit(projectIndex);
+            renderProjects();
+            persistData();
+        }
 
         // Delete project
         function deleteProject(projectIndex) {
@@ -2772,6 +3912,121 @@
                 closeDatePicker();
                 persistData();
             }
+        }
+
+        // Subtask Management Functions
+        function toggleSubtaskInput(projectIndex, taskIndex) {
+            const input = document.getElementById(`subtaskInput${projectIndex}-${taskIndex}`);
+            if (input) {
+                const isHidden = input.style.display === 'none';
+                input.style.display = isHidden ? 'block' : 'none';
+                if (isHidden) {
+                    setTimeout(() => {
+                        document.getElementById(`subtaskText${projectIndex}-${taskIndex}`).focus();
+                    }, 0);
+                }
+            }
+        }
+
+        function addSubtask(projectIndex, taskIndex) {
+            const input = document.getElementById(`subtaskText${projectIndex}-${taskIndex}`);
+            const text = input.value.trim();
+            
+            if (!text) {
+                alert('Please enter a subtask description');
+                return;
+            }
+            
+            const task = projects[projectIndex].tasks[taskIndex];
+            if (!task.subtasks) {
+                task.subtasks = [];
+            }
+            
+            task.subtasks.push({
+                text: text,
+                completed: false
+            });
+            
+            input.value = '';
+            renderProjects();
+            persistData();
+        }
+
+        function toggleSubtask(projectIndex, taskIndex, subtaskIndex) {
+            const subtask = projects[projectIndex].tasks[taskIndex].subtasks[subtaskIndex];
+            subtask.completed = !subtask.completed;
+            renderProjects();
+            persistData();
+        }
+
+        function deleteSubtask(projectIndex, taskIndex, subtaskIndex) {
+            if (confirm('Delete this subtask?')) {
+                projects[projectIndex].tasks[taskIndex].subtasks.splice(subtaskIndex, 1);
+                renderProjects();
+                persistData();
+            }
+        }
+
+        // Subtask assignee dropdown
+        let subtaskAssigneeDropdown = null;
+
+        function showSubtaskAssigneeDropdown(event, projectIndex, taskIndex, subtaskIndex) {
+            event.stopPropagation();
+            
+            // Close existing dropdown
+            if (subtaskAssigneeDropdown) {
+                subtaskAssigneeDropdown.remove();
+            }
+            
+            const project = projects[projectIndex];
+            let options = '';
+            
+            // Option to unassign
+            options += `<div class="assignee-option" onclick="assignSubtaskTo(${projectIndex}, ${taskIndex}, ${subtaskIndex}, null)" style="border-bottom: 1px solid #e0e0e0; padding-bottom: 8px; margin-bottom: 8px;">
+                <span style="color: #999;">Unassign</span>
+            </div>`;
+            
+            // Add team members
+            project.team.forEach(member => {
+                const teamMember = teamMembers.find(m => m.name === member);
+                options += `
+                    <div class="assignee-option" onclick="assignSubtaskTo(${projectIndex}, ${taskIndex}, ${subtaskIndex}, '${member}')">
+                        <span>${member}</span>
+                        <span class="role-badge">${teamMember ? teamMember.role : ''}</span>
+                    </div>
+                `;
+            });
+            
+            const dropdown = document.createElement('div');
+            dropdown.className = 'assignee-dropdown';
+            dropdown.style.position = 'fixed';
+            dropdown.style.top = (event.clientY + 10) + 'px';
+            dropdown.style.left = (event.clientX - 100) + 'px';
+            dropdown.style.zIndex = '1000';
+            dropdown.innerHTML = options;
+            
+            document.body.appendChild(dropdown);
+            subtaskAssigneeDropdown = dropdown;
+            
+            // Close dropdown when clicking outside
+            setTimeout(() => {
+                document.addEventListener('click', closeSubtaskAssigneeDropdown);
+            }, 0);
+        }
+
+        function closeSubtaskAssigneeDropdown() {
+            if (subtaskAssigneeDropdown) {
+                subtaskAssigneeDropdown.remove();
+                subtaskAssigneeDropdown = null;
+            }
+            document.removeEventListener('click', closeSubtaskAssigneeDropdown);
+        }
+
+        function assignSubtaskTo(projectIndex, taskIndex, subtaskIndex, memberName) {
+            projects[projectIndex].tasks[taskIndex].subtasks[subtaskIndex].assignee = memberName;
+            renderProjects();
+            closeSubtaskAssigneeDropdown();
+            persistData();
         }
 
         // Initialize: try loading data from server, fall back to embedded sample data
