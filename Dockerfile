@@ -1,3 +1,4 @@
+# Multi-stage build for smaller final image
 FROM python:3.11-slim as builder
 
 WORKDIR /app
@@ -31,11 +32,9 @@ RUN chown -R appuser:appuser /app
 
 USER appuser
 
-EXPOSE 5000
+# Cloud Run provides PORT environment variable
+ENV PORT=8080
+EXPOSE 8080
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5000/health').read()" || exit 1
-
-# Production server
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--timeout", "60", "wsgi:app"]
+# Run gunicorn on the PORT environment variable
+CMD exec gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 8 --timeout 0 wsgi:app
