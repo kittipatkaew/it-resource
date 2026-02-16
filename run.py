@@ -31,7 +31,7 @@ if __name__ == '__main__':
     print("="*50 + "\n")
     
     # Get port from environment or use default
-    port = int(os.environ.get('PORT', 5001))
+    port = int(os.environ.get('PORT', 8080))
     
     # Run the application
     # Use 0.0.0.0 to allow external connections
