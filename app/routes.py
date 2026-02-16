@@ -91,20 +91,34 @@ def backup_endpoint():
 
 @bp.route('/api/data', methods=['GET'])
 def get_json_data():
-    """Get data from JSON file"""
+    """Get data from PostgreSQL database (IT Resource Manager format)"""
     try:
-        # Path to your JSON file
-        json_file_path = os.path.join(os.path.dirname(__file__), '..', 'it-resource-manager-backup.json')
+        from app.models import TeamMember, Project
         
-        # Read the JSON file
-        with open(json_file_path, 'r') as file:
-            data = json.load(file)
+        # Get all team members with their projects
+        team_members = TeamMember.query.all()
+        team_members_data = []
         
-        return jsonify(data), 200
-    except FileNotFoundError:
-        return jsonify({'error': 'Data file not found'}), 404
-    except json.JSONDecodeError:
-        return jsonify({'error': 'Invalid JSON format'}), 400
+        for member in team_members:
+            member_dict = member.to_dict()
+            team_members_data.append(member_dict)
+        
+        # Get all projects with tasks, images, links, team
+        projects = Project.query.order_by(Project.starred.desc(), Project.created_at.desc()).all()
+        projects_data = []
+        
+        for project in projects:
+            project_dict = project.to_dict(include_tasks=True)
+            projects_data.append(project_dict)
+        
+        # Return data in the same format as the JSON file
+        return jsonify({
+            'teamMembers': team_members_data,
+            'projects': projects_data,
+            'exportDate': datetime.utcnow().isoformat(),
+            'version': '2.5.0'
+        }), 200
+        
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -350,6 +364,496 @@ def get_stats():
         'total_posts': total_posts,
         'timestamp': datetime.utcnow().isoformat()
     }), 200
+
+# ============= IT Resource Manager API Routes =============
+
+# Team Members Routes
+@bp.route('/api/team-members', methods=['GET'])
+def get_team_members():
+    """Get all team members with their projects"""
+    try:
+        from app.models import TeamMember
+        team_members = TeamMember.query.all()
+        return jsonify([member.to_dict() for member in team_members]), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@bp.route('/api/team-members', methods=['POST'])
+def create_team_member():
+    """Create a new team member"""
+    try:
+        from app.models import TeamMember
+        data = request.get_json()
+        
+        if not data or not data.get('name') or not data.get('role'):
+            return jsonify({'error': 'Name and role are required'}), 400
+        
+        # Check if member already exists
+        if TeamMember.query.filter_by(name=data['name']).first():
+            return jsonify({'error': 'Team member with this name already exists'}), 409
+        
+        member = TeamMember(
+            name=data['name'],
+            role=data['role'],
+            skills=data.get('skills', []),
+            workload=data.get('workload', 0)
+        )
+        
+        db.session.add(member)
+        db.session.commit()
+        
+        return jsonify(member.to_dict()), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@bp.route('/api/team-members/<int:member_id>', methods=['PUT'])
+def update_team_member(member_id):
+    """Update a team member"""
+    try:
+        from app.models import TeamMember
+        member = TeamMember.query.get_or_404(member_id)
+        data = request.get_json()
+        
+        if 'name' in data:
+            member.name = data['name']
+        if 'role' in data:
+            member.role = data['role']
+        if 'skills' in data:
+            member.skills = data['skills']
+        if 'workload' in data:
+            member.workload = data['workload']
+        
+        db.session.commit()
+        return jsonify(member.to_dict()), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@bp.route('/api/team-members/<int:member_id>', methods=['DELETE'])
+def delete_team_member(member_id):
+    """Delete a team member"""
+    try:
+        from app.models import TeamMember
+        member = TeamMember.query.get_or_404(member_id)
+        db.session.delete(member)
+        db.session.commit()
+        return jsonify({'message': 'Team member deleted successfully'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+# Projects Routes
+@bp.route('/api/projects', methods=['GET'])
+def get_projects():
+    """Get all projects with tasks, images, links, and team"""
+    try:
+        from app.models import Project
+        projects = Project.query.order_by(Project.starred.desc(), Project.created_at.desc()).all()
+        return jsonify([project.to_dict() for project in projects]), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@bp.route('/api/projects', methods=['POST'])
+def create_project():
+    """Create a new project"""
+    try:
+        from app.models import Project
+        data = request.get_json()
+        
+        if not data or not data.get('name'):
+            return jsonify({'error': 'Project name is required'}), 400
+        
+        if Project.query.filter_by(name=data['name']).first():
+            return jsonify({'error': 'Project with this name already exists'}), 409
+        
+        project = Project(
+            name=data['name'],
+            description=data.get('description', ''),
+            status=data.get('status', 'planning'),
+            starred=data.get('starred', False),
+            meeting_minutes=data.get('meetingMinutes', '')
+        )
+        
+        db.session.add(project)
+        db.session.commit()
+        
+        return jsonify(project.to_dict()), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@bp.route('/api/projects/<int:project_id>', methods=['PUT'])
+def update_project(project_id):
+    """Update a project"""
+    try:
+        from app.models import Project
+        project = Project.query.get_or_404(project_id)
+        data = request.get_json()
+        
+        if 'name' in data:
+            project.name = data['name']
+        if 'description' in data:
+            project.description = data['description']
+        if 'status' in data:
+            project.status = data['status']
+        if 'starred' in data:
+            project.starred = data['starred']
+        if 'meetingMinutes' in data:
+            project.meeting_minutes = data['meetingMinutes']
+        
+        db.session.commit()
+        return jsonify(project.to_dict()), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@bp.route('/api/projects/<int:project_id>', methods=['DELETE'])
+def delete_project(project_id):
+    """Delete a project (cascades to tasks, images, links)"""
+    try:
+        from app.models import Project
+        project = Project.query.get_or_404(project_id)
+        db.session.delete(project)
+        db.session.commit()
+        return jsonify({'message': 'Project deleted successfully'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+# Project Team Routes
+@bp.route('/api/projects/<int:project_id>/team', methods=['POST'])
+def add_team_member_to_project(project_id):
+    """Add a team member to a project"""
+    try:
+        from app.models import Project, TeamMember, ProjectTeam
+        project = Project.query.get_or_404(project_id)
+        data = request.get_json()
+        
+        member_name = data.get('member_name')
+        if not member_name:
+            return jsonify({'error': 'member_name is required'}), 400
+        
+        # Check if member exists
+        member = TeamMember.query.filter_by(name=member_name).first()
+        if not member:
+            return jsonify({'error': 'Team member not found'}), 404
+        
+        # Add to project team (will be ignored if already exists due to unique constraint)
+        project_team = ProjectTeam(project_id=project_id, member_name=member_name)
+        db.session.add(project_team)
+        db.session.commit()
+        
+        # Update member workload
+        member.workload = min(len(member.project_teams) * 25, 100)
+        db.session.commit()
+        
+        return jsonify({'message': 'Team member added to project'}), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@bp.route('/api/projects/<int:project_id>/team/<string:member_name>', methods=['DELETE'])
+def remove_team_member_from_project(project_id, member_name):
+    """Remove a team member from a project"""
+    try:
+        from app.models import TeamMember, ProjectTeam
+        
+        ProjectTeam.query.filter_by(
+            project_id=project_id,
+            member_name=member_name
+        ).delete()
+        
+        db.session.commit()
+        
+        # Update member workload
+        member = TeamMember.query.filter_by(name=member_name).first()
+        if member:
+            member.workload = min(len(member.project_teams) * 25, 100)
+            db.session.commit()
+        
+        return jsonify({'message': 'Team member removed from project'}), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+# Project Images Routes
+@bp.route('/api/projects/<int:project_id>/images', methods=['POST'])
+def add_project_image(project_id):
+    """Add an image to a project"""
+    try:
+        from app.models import Project, ProjectImage
+        project = Project.query.get_or_404(project_id)
+        data = request.get_json()
+        
+        if not data or not data.get('image_data'):
+            return jsonify({'error': 'image_data is required'}), 400
+        
+        image = ProjectImage(
+            project_id=project_id,
+            image_data=data['image_data']
+        )
+        
+        db.session.add(image)
+        db.session.commit()
+        
+        return jsonify(image.to_dict()), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@bp.route('/api/projects/<int:project_id>/images/<int:image_id>', methods=['DELETE'])
+def delete_project_image(project_id, image_id):
+    """Delete a project image"""
+    try:
+        from app.models import ProjectImage
+        image = ProjectImage.query.filter_by(id=image_id, project_id=project_id).first_or_404()
+        db.session.delete(image)
+        db.session.commit()
+        return jsonify({'message': 'Image deleted successfully'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+# Tasks Routes
+@bp.route('/api/projects/<int:project_id>/tasks', methods=['POST'])
+def create_task(project_id):
+    """Create a new task"""
+    try:
+        from app.models import Project, Task
+        project = Project.query.get_or_404(project_id)
+        data = request.get_json()
+        
+        if not data or not data.get('text'):
+            return jsonify({'error': 'Task text is required'}), 400
+        
+        task = Task(
+            project_id=project_id,
+            text=data['text'],
+            completed=data.get('completed', False),
+            start_date=data.get('startDate'),
+            end_date=data.get('endDate'),
+            assignee_name=data.get('assignee')
+        )
+        
+        db.session.add(task)
+        db.session.commit()
+        
+        return jsonify(task.to_dict()), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@bp.route('/api/tasks/<int:task_id>', methods=['PUT'])
+def update_task(task_id):
+    """Update a task"""
+    try:
+        from app.models import Task
+        task = Task.query.get_or_404(task_id)
+        data = request.get_json()
+        
+        if 'text' in data:
+            task.text = data['text']
+        if 'completed' in data:
+            task.completed = data['completed']
+        if 'startDate' in data:
+            task.start_date = data['startDate']
+        if 'endDate' in data:
+            task.end_date = data['endDate']
+        if 'assignee' in data:
+            task.assignee_name = data['assignee']
+        
+        db.session.commit()
+        return jsonify(task.to_dict()), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@bp.route('/api/tasks/<int:task_id>', methods=['DELETE'])
+def delete_task(task_id):
+    """Delete a task"""
+    try:
+        from app.models import Task
+        task = Task.query.get_or_404(task_id)
+        db.session.delete(task)
+        db.session.commit()
+        return jsonify({'message': 'Task deleted successfully'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+# Subtasks Routes
+@bp.route('/api/tasks/<int:task_id>/subtasks', methods=['POST'])
+def create_subtask(task_id):
+    """Create a new subtask"""
+    try:
+        from app.models import Task, Subtask
+        task = Task.query.get_or_404(task_id)
+        data = request.get_json()
+        
+        if not data or not data.get('text'):
+            return jsonify({'error': 'Subtask text is required'}), 400
+        
+        subtask = Subtask(
+            task_id=task_id,
+            text=data['text'],
+            completed=data.get('completed', False),
+            assignee_name=data.get('assignee')
+        )
+        
+        db.session.add(subtask)
+        db.session.commit()
+        
+        return jsonify(subtask.to_dict()), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@bp.route('/api/subtasks/<int:subtask_id>', methods=['PUT'])
+def update_subtask(subtask_id):
+    """Update a subtask"""
+    try:
+        from app.models import Subtask
+        subtask = Subtask.query.get_or_404(subtask_id)
+        data = request.get_json()
+        
+        if 'text' in data:
+            subtask.text = data['text']
+        if 'completed' in data:
+            subtask.completed = data['completed']
+        if 'assignee' in data:
+            subtask.assignee_name = data['assignee']
+        
+        db.session.commit()
+        return jsonify(subtask.to_dict()), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@bp.route('/api/subtasks/<int:subtask_id>', methods=['DELETE'])
+def delete_subtask(subtask_id):
+    """Delete a subtask"""
+    try:
+        from app.models import Subtask
+        subtask = Subtask.query.get_or_404(subtask_id)
+        db.session.delete(subtask)
+        db.session.commit()
+        return jsonify({'message': 'Subtask deleted successfully'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+# Data Import Route
+@bp.route('/api/import', methods=['POST'])
+def import_data():
+    """Import data from JSON export to PostgreSQL"""
+    try:
+        from app.models import TeamMember, Project, ProjectTeam, ProjectImage, ProjectLink, Task, Subtask
+        
+        data = request.get_json()
+        
+        if not data or 'teamMembers' not in data or 'projects' not in data:
+            return jsonify({'error': 'Invalid data format'}), 400
+        
+        # Clear existing data
+        Subtask.query.delete()
+        Task.query.delete()
+        ProjectLink.query.delete()
+        ProjectImage.query.delete()
+        ProjectTeam.query.delete()
+        Project.query.delete()
+        TeamMember.query.delete()
+        
+        # Import team members
+        for member_data in data['teamMembers']:
+            member = TeamMember(
+                name=member_data['name'],
+                role=member_data['role'],
+                skills=member_data.get('skills', []),
+                workload=member_data.get('workload', 0)
+            )
+            db.session.add(member)
+        
+        db.session.flush()
+        
+        # Import projects
+        for project_data in data['projects']:
+            project = Project(
+                name=project_data['name'],
+                description=project_data.get('description', ''),
+                status=project_data.get('status', 'planning'),
+                starred=project_data.get('starred', False),
+                meeting_minutes=project_data.get('meetingMinutes', '')
+            )
+            db.session.add(project)
+            db.session.flush()
+            
+            # Import project team
+            for member_name in project_data.get('team', []):
+                pt = ProjectTeam(project_id=project.id, member_name=member_name)
+                db.session.add(pt)
+            
+            # Import project images
+            for image_data in project_data.get('images', []):
+                img = ProjectImage(
+                    project_id=project.id,
+                    image_data=image_data.get('image_data', image_data) if isinstance(image_data, dict) else image_data
+                )
+                db.session.add(img)
+            
+            # Import project links
+            for link_data in project_data.get('links', []):
+                link = ProjectLink(
+                    project_id=project.id,
+                    url=link_data['url'],
+                    label=link_data.get('label')
+                )
+                db.session.add(link)
+            
+            # Import tasks
+            for task_data in project_data.get('tasks', []):
+                task = Task(
+                    project_id=project.id,
+                    text=task_data['text'],
+                    completed=task_data.get('completed', False),
+                    start_date=task_data.get('startDate'),
+                    end_date=task_data.get('endDate'),
+                    assignee_name=task_data.get('assignee')
+                )
+                db.session.add(task)
+                db.session.flush()
+                
+                # Import subtasks
+                for subtask_data in task_data.get('subtasks', []):
+                    subtask = Subtask(
+                        task_id=task.id,
+                        text=subtask_data['text'],
+                        completed=subtask_data.get('completed', False),
+                        assignee_name=subtask_data.get('assignee')
+                    )
+                    db.session.add(subtask)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Data imported successfully',
+            'timestamp': datetime.utcnow().isoformat()
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 # ============= Error Handlers =============
 
