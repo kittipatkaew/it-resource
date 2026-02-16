@@ -950,11 +950,14 @@
             border-radius: 8px;
             border-left: 4px solid #667eea;
             transition: all 0.2s;
+            cursor: pointer;
         }
 
         .task-detail-item:hover {
-            background: #f0f0f0;
+            background: #e8eeff;
             transform: translateX(5px);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+            border-left-width: 5px;
         }
 
         .task-detail-item.done {
@@ -1568,6 +1571,19 @@
             opacity: 1;
         }
 
+        .subtask-edit {
+            color: #999;
+            cursor: pointer;
+            font-size: 12px;
+            padding: 0 4px;
+            opacity: 0.7;
+        }
+
+        .subtask-edit:hover {
+            color: #667eea;
+            opacity: 1;
+        }
+
         .add-subtask-btn {
             background: transparent;
             color: #667eea;
@@ -1846,6 +1862,7 @@
             <div class="export-import-container" style="margin-top: 15px;">
                 <button class="export-btn" onclick="exportData()">📥 Export Data</button>
                 <button class="import-btn" onclick="document.getElementById('importFile').click()">📤 Import Data</button>
+                <button class="export-btn" onclick="showVersionInfo()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">ℹ️ Version Info</button>
                 <input type="file" id="importFile" accept=".json" onchange="importData(event)">
             </div>
         </header>
@@ -1894,6 +1911,7 @@
                         <div class="filter-label">Filter by Team Member</div>
                         <select class="filter-select" id="memberFilter" onchange="renderTaskOverview()">
                             <option value="">All Team Members</option>
+                            <option value="unassigned">🔴 Unassigned Tasks</option>
                         </select>
                     </div>
                     <div class="filter-group">
@@ -1903,6 +1921,7 @@
                             <option value="delayed">⚠️ Delayed Only</option>
                             <option value="onplan">📅 On Plan Only</option>
                             <option value="done">✅ Done Only</option>
+                            <option value="nodate">📭 No Start Date</option>
                         </select>
                     </div>
                     <div class="filter-group">
@@ -2055,6 +2074,99 @@
             <div class="modal-actions">
                 <button class="btn btn-primary" onclick="saveTaskEdit()">Save Changes</button>
                 <button class="btn btn-secondary" onclick="closeTaskEditModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Subtask Modal -->
+    <div id="subtaskEditModal" class="task-edit-modal">
+        <div class="modal-content">
+            <div class="modal-header">Edit Subtask</div>
+            <div class="form-group">
+                <label>Subtask Description</label>
+                <input type="text" id="editSubtaskText" placeholder="Enter subtask description">
+            </div>
+            <div class="form-group">
+                <label>Assign To</label>
+                <select id="editSubtaskAssignee">
+                    <option value="">Unassigned</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="saveSubtaskEdit()">Save Changes</button>
+                <button class="btn btn-secondary" onclick="closeSubtaskEditModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Version Info Modal -->
+    <div id="versionModal" class="modal">
+        <div class="modal-content" style="max-width: 700px; max-height: 80vh; overflow-y: auto;">
+            <div class="modal-header">📋 Version History & Features</div>
+            
+            <div style="margin-bottom: 20px; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; color: white;">
+                <h2 style="margin: 0; font-size: 24px;">Current Version: 2.5.0</h2>
+                <p style="margin: 5px 0 0 0; opacity: 0.9;">Released: February 2026</p>
+            </div>
+
+            <div style="margin-bottom: 25px;">
+                <h3 style="color: #667eea; margin-bottom: 10px;">✨ Latest Features (v2.5.0)</h3>
+                <ul style="line-height: 1.8; color: #333;">
+                    <li><strong>✏️ Edit Subtasks</strong> - Edit subtask text and reassign team members via modal</li>
+                    <li><strong>🔴 Unassigned Tasks Filter</strong> - View all tasks without assignees grouped by project</li>
+                    <li><strong>📭 No Start Date Filter</strong> - Find tasks missing start dates for each team member</li>
+                    <li><strong>🔗 Clickable Tasks</strong> - Click tasks in Task Monitor to jump to their project</li>
+                    <li><strong>📅 Calendar Integration</strong> - Click calendar tasks to navigate to projects</li>
+                </ul>
+            </div>
+
+            <div style="margin-bottom: 25px;">
+                <h3 style="color: #667eea; margin-bottom: 10px;">🎯 Version 2.0.0 - Major Update</h3>
+                <ul style="line-height: 1.8; color: #333;">
+                    <li><strong>📅 Calendar View</strong> - Full calendar with month navigation and task visualization</li>
+                    <li><strong>📊 Task Monitor</strong> - Dashboard showing team member workload and task status</li>
+                    <li><strong>🔍 Advanced Filters</strong> - Filter by project, status, team member across all views</li>
+                    <li><strong>📈 Progress Tracking</strong> - Visual indicators for delayed, on-plan, and completed tasks</li>
+                </ul>
+            </div>
+
+            <div style="margin-bottom: 25px;">
+                <h3 style="color: #667eea; margin-bottom: 10px;">🔧 Version 1.5.0 - Enhanced Features</h3>
+                <ul style="line-height: 1.8; color: #333;">
+                    <li><strong>🖼️ Multiple Images</strong> - Upload multiple project images with gallery view</li>
+                    <li><strong>✏️ Edit Everything</strong> - Edit team members, projects, and tasks</li>
+                    <li><strong>🔗 Project Links</strong> - Add external links to projects</li>
+                    <li><strong>📝 Meeting Minutes</strong> - Document meeting notes for each project</li>
+                    <li><strong>⭐ Starred Projects</strong> - Mark urgent/important projects</li>
+                </ul>
+            </div>
+
+            <div style="margin-bottom: 25px;">
+                <h3 style="color: #667eea; margin-bottom: 10px;">🎨 Version 1.0.0 - Core Features</h3>
+                <ul style="line-height: 1.8; color: #333;">
+                    <li><strong>👥 Team Management</strong> - Add, edit, delete team members with roles and skills</li>
+                    <li><strong>📁 Project Management</strong> - Create projects with status tracking</li>
+                    <li><strong>✅ Task Management</strong> - Tasks with dates, assignees, and completion tracking</li>
+                    <li><strong>🔸 Subtasks</strong> - Break down tasks into manageable subtasks</li>
+                    <li><strong>🎨 Drag & Drop</strong> - Assign team members to projects via drag-and-drop</li>
+                    <li><strong>📊 Workload Calculation</strong> - Automatic workload percentage tracking</li>
+                    <li><strong>💾 Export/Import</strong> - JSON export and import for data backup</li>
+                    <li><strong>🎯 Assignee Tracking</strong> - Assign tasks to specific team members</li>
+                </ul>
+            </div>
+
+            <div style="padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #667eea;">
+                <h3 style="color: #333; margin: 0 0 10px 0;">📊 System Statistics</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 14px; color: #666;">
+                    <div><strong>Total Lines of Code:</strong> 4,480+</div>
+                    <div><strong>Total Functions:</strong> 60+</div>
+                    <div><strong>CSS Classes:</strong> 150+</div>
+                    <div><strong>Features:</strong> 40+</div>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="closeVersionModal()">Close</button>
             </div>
         </div>
     </div>
@@ -2447,6 +2559,7 @@
                                                             ? `<span class="subtask-assignee" onclick="showSubtaskAssigneeDropdown(event, ${pIndex}, ${tIndex}, ${sIndex})" title="Click to reassign">${subtask.assignee.split(' ')[0]}</span>`
                                                             : `<span class="subtask-assignee-btn" onclick="showSubtaskAssigneeDropdown(event, ${pIndex}, ${tIndex}, ${sIndex})" title="Assign to team member">Assign</span>`
                                                         }
+                                                        <span class="subtask-edit" onclick="editSubtask(${pIndex}, ${tIndex}, ${sIndex})" title="Edit subtask">✎</span>
                                                         <span class="subtask-delete" onclick="deleteSubtask(${pIndex}, ${tIndex}, ${sIndex})" title="Delete subtask">×</span>
                                                     </div>
                                                 `).join('')}
@@ -2496,6 +2609,7 @@
             const memberFilter = document.getElementById('memberFilter');
             const currentMemberFilter = memberFilter.value;
             memberFilter.innerHTML = '<option value="">All Team Members</option>';
+            memberFilter.innerHTML += '<option value="unassigned">🔴 Unassigned Tasks</option>';
             teamMembers.forEach(member => {
                 const option = document.createElement('option');
                 option.value = member.name;
@@ -2505,6 +2619,9 @@
                 }
                 memberFilter.appendChild(option);
             });
+            if (currentMemberFilter === 'unassigned') {
+                memberFilter.value = 'unassigned';
+            }
             
             // Update project filter dropdown
             const projectFilter = document.getElementById('projectFilter');
@@ -2530,26 +2647,94 @@
             const selectedStatus = document.getElementById('statusFilter').value;
             const selectedProject = document.getElementById('projectFilter').value;
             
-            // Filter members
-            let filteredMembers = teamMembers;
-            if (selectedMember) {
-                filteredMembers = teamMembers.filter(m => m.name === selectedMember);
-            }
-            
             let html = '';
             let hasResults = false;
+            
+            // Handle UNASSIGNED TASKS filter
+            if (selectedMember === 'unassigned') {
+                // Show unassigned tasks grouped by project
+                html = '<div style="margin-bottom: 20px;"><h3 style="color: #333; font-size: 22px;">🔴 Unassigned Tasks by Project</h3></div>';
+                let hasUnassignedTasks = false;
+                
+                projects.forEach((project, projectIndex) => {
+                    if (selectedProject && project.name !== selectedProject) return;
+                    
+                    const unassignedTasks = project.tasks.filter(t => !t.assignee);
+                    
+                    if (unassignedTasks.length > 0) {
+                        hasUnassignedTasks = true;
+                        html += `
+                            <div class="member-overview-card">
+                                <div class="member-overview-header">
+                                    <div class="member-overview-info">
+                                        <div>
+                                            <h3 style="font-size: 20px; color: #333;">📁 ${project.name}</h3>
+                                            <div style="color: #666; font-size: 14px;">Status: ${project.status.charAt(0).toUpperCase() + project.status.slice(1).replace('-', ' ')}</div>
+                                        </div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="font-size: 12px; color: #666;">Unassigned Tasks</div>
+                                        <div style="font-size: 24px; font-weight: 700; color: #dc3545;">${unassignedTasks.length}</div>
+                                    </div>
+                                </div>
+                                <div class="task-detail-section">
+                                    <div class="task-detail-header">🔴 Tasks Without Assignee (${unassignedTasks.length})</div>
+                                    <div class="task-detail-list">
+                        `;
+                        
+                        unassignedTasks.forEach(task => {
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            const isOverdue = task.endDate && new Date(task.endDate) < today && !task.completed;
+                            
+                            html += `
+                                <div class="task-detail-item ${task.completed ? 'done' : (isOverdue ? 'delayed' : 'onplan')}"
+                                     onclick="goToProjectFromTaskMonitor(${projectIndex})"
+                                     style="cursor: pointer;"
+                                     title="Click to view in Projects tab">
+                                    <div class="task-detail-title ${task.completed ? 'completed' : ''}">${task.text}</div>
+                                    <div class="task-detail-meta">
+                                        ${task.startDate && task.endDate ? `<span>📅 ${new Date(task.startDate).toLocaleDateString()} → ${new Date(task.endDate).toLocaleDateString()}</span>` : '<span>📅 No dates set</span>'}
+                                        ${task.completed ? '<span>✅ Completed</span>' : (isOverdue ? '<span style="color: #dc3545;">⚠️ Overdue</span>' : '')}
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        
+                        html += `
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                });
+                
+                if (!hasUnassignedTasks) {
+                    html += '<div class="no-tasks-message">✅ All tasks are assigned! No unassigned tasks found.</div>';
+                }
+                
+                container.innerHTML = html;
+                return;
+            }
+            
+            // Filter members (normal flow)
+            let filteredMembers = teamMembers;
+            if (selectedMember && selectedMember !== 'unassigned') {
+                filteredMembers = teamMembers.filter(m => m.name === selectedMember);
+            }
             
             filteredMembers.forEach(member => {
                 // Get all tasks assigned to this member across all projects
                 let memberTasks = [];
-                projects.forEach(project => {
+                projects.forEach((project, projectIndex) => {
                     if (project.tasks) {
                         project.tasks.forEach(task => {
                             if (task.assignee === member.name) {
                                 memberTasks.push({
                                     ...task,
                                     projectName: project.name,
-                                    projectStatus: project.status
+                                    projectStatus: project.status,
+                                    projectIndex: projectIndex
                                 });
                             }
                         });
@@ -2602,11 +2787,15 @@
                     return endDate < today;
                 });
                 
+                // Tasks with no start date
+                const noDateTasks = memberTasks.filter(t => !t.startDate);
+                
                 // Apply status filter
                 let tasksToShow = {
                     delayed: delayedTasks,
                     onplan: onPlanTasks,
-                    done: doneTasks
+                    done: doneTasks,
+                    nodate: noDateTasks
                 };
                 
                 if (selectedStatus) {
@@ -2668,7 +2857,10 @@
                         tasksToShow.delayed.forEach(task => {
                             const daysOverdue = Math.floor((today - new Date(task.endDate)) / (1000 * 60 * 60 * 24));
                             html += `
-                                <div class="task-detail-item delayed">
+                                <div class="task-detail-item delayed" 
+                                     onclick="goToProjectFromTaskMonitor(${task.projectIndex})"
+                                     style="cursor: pointer;"
+                                     title="Click to view in Projects tab">
                                     <div class="task-detail-title">${task.text}</div>
                                     <div class="task-detail-meta">
                                         <span>📁 ${task.projectName}</span>
@@ -2693,7 +2885,10 @@
                         `;
                         tasksToShow.onplan.forEach(task => {
                             html += `
-                                <div class="task-detail-item onplan">
+                                <div class="task-detail-item onplan"
+                                     onclick="goToProjectFromTaskMonitor(${task.projectIndex})"
+                                     style="cursor: pointer;"
+                                     title="Click to view in Projects tab">
                                     <div class="task-detail-title">${task.text}</div>
                                     <div class="task-detail-meta">
                                         <span>📁 ${task.projectName}</span>
@@ -2717,11 +2912,42 @@
                         `;
                         tasksToShow.done.forEach(task => {
                             html += `
-                                <div class="task-detail-item done">
+                                <div class="task-detail-item done"
+                                     onclick="goToProjectFromTaskMonitor(${task.projectIndex})"
+                                     style="cursor: pointer;"
+                                     title="Click to view in Projects tab">
                                     <div class="task-detail-title completed">${task.text}</div>
                                     <div class="task-detail-meta">
                                         <span>📁 ${task.projectName}</span>
                                         ${task.startDate && task.endDate ? `<span>📅 ${new Date(task.startDate).toLocaleDateString()} → ${new Date(task.endDate).toLocaleDateString()}</span>` : ''}
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        html += `
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    // No Start Date tasks
+                    if (tasksToShow.nodate && tasksToShow.nodate.length > 0) {
+                        html += `
+                            <div class="task-detail-section">
+                                <div class="task-detail-header">📭 Tasks Without Start Date (${tasksToShow.nodate.length})</div>
+                                <div class="task-detail-list">
+                        `;
+                        tasksToShow.nodate.forEach(task => {
+                            html += `
+                                <div class="task-detail-item onplan"
+                                     onclick="goToProjectFromTaskMonitor(${task.projectIndex})"
+                                     style="cursor: pointer; border-left-color: #999;"
+                                     title="Click to view in Projects tab">
+                                    <div class="task-detail-title">${task.text}</div>
+                                    <div class="task-detail-meta">
+                                        <span>📁 ${task.projectName}</span>
+                                        <span style="color: #999;">📭 No start date set</span>
+                                        ${task.completed ? '<span>✅ Completed</span>' : ''}
                                     </div>
                                 </div>
                             `;
@@ -2832,6 +3058,67 @@
             document.getElementById('statusFilter').value = '';
             document.getElementById('projectFilter').value = '';
             renderTaskOverview();
+        }
+
+        // Navigate from Task Monitor to project in Projects tab
+        function goToProjectFromTaskMonitor(projectIndex) {
+            // Switch to Projects tab
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // Activate projects tab
+            const projectsTab = Array.from(document.querySelectorAll('.tab')).find(tab => 
+                tab.getAttribute('onclick') && tab.getAttribute('onclick').includes("'projects'")
+            );
+            if (projectsTab) projectsTab.classList.add('active');
+            document.getElementById('projects').classList.add('active');
+            
+            // Clear filters to ensure project is visible
+            const searchInput = document.getElementById('projectSearchInput');
+            const statusFilter = document.getElementById('projectStatusFilter');
+            const memberFilter = document.getElementById('projectMemberFilter');
+            
+            if (searchInput) searchInput.value = '';
+            if (statusFilter) statusFilter.value = '';
+            if (memberFilter) memberFilter.value = '';
+            
+            // Render projects
+            renderProjects();
+            
+            // Wait for render, then scroll to and highlight the specific project
+            setTimeout(() => {
+                const projectCard = document.querySelector(`.project-card[data-index="${projectIndex}"]`);
+                if (projectCard) {
+                    // Scroll to project
+                    projectCard.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'center' 
+                    });
+                    
+                    // Apply highlight effect
+                    const originalBoxShadow = projectCard.style.boxShadow;
+                    const originalTransform = projectCard.style.transform;
+                    const originalTransition = projectCard.style.transition;
+                    
+                    projectCard.style.transition = 'all 0.3s ease';
+                    projectCard.style.boxShadow = '0 0 0 4px #667eea, 0 8px 32px rgba(102, 126, 234, 0.4)';
+                    projectCard.style.transform = 'scale(1.02)';
+                    
+                    // Remove highlight after 2 seconds
+                    setTimeout(() => {
+                        projectCard.style.transition = 'all 0.5s ease';
+                        projectCard.style.boxShadow = originalBoxShadow;
+                        projectCard.style.transform = originalTransform;
+                        
+                        // Restore original transition after animation
+                        setTimeout(() => {
+                            projectCard.style.transition = originalTransition;
+                        }, 500);
+                    }, 2000);
+                } else {
+                    console.error('Project card not found for index:', projectIndex);
+                }
+            }, 200);
         }
 
         function clearProjectFilters() {
@@ -3376,6 +3663,25 @@
 
         function closeImageModal() {
             document.getElementById('imageModal').classList.remove('active');
+        }
+
+        // Version Info Modal
+        function showVersionInfo() {
+            const modal = document.getElementById('versionModal');
+            modal.style.display = 'flex';
+            
+            // Close on click outside
+            setTimeout(() => {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === modal) {
+                        closeVersionModal();
+                    }
+                });
+            }, 100);
+        }
+
+        function closeVersionModal() {
+            document.getElementById('versionModal').style.display = 'none';
         }
 
         // Close image modal when clicking outside
@@ -4034,6 +4340,76 @@
                 renderProjects();
                 persistData();
             }
+        }
+
+        // Edit Subtask
+        let editingSubtask = null;
+
+        function editSubtask(projectIndex, taskIndex, subtaskIndex) {
+            editingSubtask = { projectIndex, taskIndex, subtaskIndex };
+            const project = projects[projectIndex];
+            const subtask = project.tasks[taskIndex].subtasks[subtaskIndex];
+            
+            // Populate form
+            document.getElementById('editSubtaskText').value = subtask.text;
+            
+            // Populate assignee dropdown
+            const assigneeSelect = document.getElementById('editSubtaskAssignee');
+            assigneeSelect.innerHTML = '<option value="">Unassigned</option>';
+            
+            project.team.forEach(member => {
+                const option = document.createElement('option');
+                option.value = member;
+                option.textContent = member;
+                if (subtask.assignee === member) {
+                    option.selected = true;
+                }
+                assigneeSelect.appendChild(option);
+            });
+            
+            // Show modal
+            document.getElementById('subtaskEditModal').classList.add('active');
+            
+            // Add click outside to close
+            setTimeout(() => {
+                const modal = document.getElementById('subtaskEditModal');
+                const clickHandler = (e) => {
+                    if (e.target === modal) {
+                        closeSubtaskEditModal();
+                    }
+                };
+                modal.addEventListener('click', clickHandler);
+                modal._clickHandler = clickHandler;
+            }, 100);
+        }
+
+        function closeSubtaskEditModal() {
+            const modal = document.getElementById('subtaskEditModal');
+            modal.classList.remove('active');
+            if (modal._clickHandler) {
+                modal.removeEventListener('click', modal._clickHandler);
+            }
+            editingSubtask = null;
+        }
+
+        function saveSubtaskEdit() {
+            if (!editingSubtask) return;
+            
+            const text = document.getElementById('editSubtaskText').value.trim();
+            const assignee = document.getElementById('editSubtaskAssignee').value;
+            
+            if (!text) {
+                alert('Please enter a subtask description');
+                return;
+            }
+            
+            const subtask = projects[editingSubtask.projectIndex].tasks[editingSubtask.taskIndex].subtasks[editingSubtask.subtaskIndex];
+            subtask.text = text;
+            subtask.assignee = assignee || null;
+            
+            renderProjects();
+            persistData();
+            closeSubtaskEditModal();
         }
 
         // Subtask assignee dropdown

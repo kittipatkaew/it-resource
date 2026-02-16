@@ -721,11 +721,14 @@
             border-radius: 3px;
             font-size: 11px;
             transition: all 0.2s;
+            cursor: pointer;
         }
 
         .calendar-task-item:hover {
-            background: #f0f0f0;
-            transform: translateX(2px);
+            background: #e3e8ff;
+            transform: translateX(3px);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+            border-left-width: 4px;
         }
 
         .calendar-task-item.completed {
@@ -2906,7 +2909,7 @@
                     return;
                 }
                 
-                project.tasks.forEach(task => {
+                project.tasks.forEach((task, taskIndex) => {
                     if (!task.startDate || !task.endDate) return;
                     
                     // Filter by member if selected
@@ -2930,6 +2933,8 @@
                             tasksByDate[dateKey].push({
                                 text: task.text,
                                 projectName: project.name,
+                                projectIndex: projectIndex,
+                                taskIndex: taskIndex,
                                 completed: task.completed,
                                 assignee: task.assignee,
                                 startDate: task.startDate,
@@ -2994,11 +2999,14 @@
                                     const endTaskDate = new Date(task.endDate);
                                     const isOverdue = endTaskDate < new Date() && !task.completed;
                                     return `
-                                        <div class="calendar-task-item ${task.completed ? 'completed' : ''} ${isOverdue ? 'overdue' : ''}">
+                                        <div class="calendar-task-item ${task.completed ? 'completed' : ''} ${isOverdue ? 'overdue' : ''}" 
+                                             onclick="goToProjectFromCalendar(${task.projectIndex})"
+                                             title="Click to view in Projects tab"
+                                             style="cursor: pointer;">
                                             <div class="calendar-task-text">${task.text}</div>
                                             <div class="calendar-task-meta">
-                                                <span class="calendar-task-project">${task.projectName}</span>
-                                                ${task.assignee ? `<span class="calendar-task-assignee">${task.assignee.split(' ')[0]}</span>` : ''}
+                                                <span class="calendar-task-project">📁 ${task.projectName}</span>
+                                                ${task.assignee ? `<span class="calendar-task-assignee">👤 ${task.assignee.split(' ')[0]}</span>` : ''}
                                             </div>
                                         </div>
                                     `;
@@ -3039,6 +3047,67 @@
             document.getElementById('calendarProjectFilter').value = '';
             document.getElementById('calendarMemberFilter').value = '';
             renderCalendarView();
+        }
+
+        // Navigate from calendar task to its project in Projects tab
+        function goToProjectFromCalendar(projectIndex) {
+            // Switch to Projects tab
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // Activate projects tab - find the button with "projects" in onclick
+            const projectsTab = Array.from(document.querySelectorAll('.tab')).find(tab => 
+                tab.getAttribute('onclick') && tab.getAttribute('onclick').includes("'projects'")
+            );
+            if (projectsTab) projectsTab.classList.add('active');
+            document.getElementById('projects').classList.add('active');
+            
+            // Clear filters to ensure project is visible
+            const searchInput = document.getElementById('projectSearchInput');
+            const statusFilter = document.getElementById('projectStatusFilter');
+            const memberFilter = document.getElementById('projectMemberFilter');
+            
+            if (searchInput) searchInput.value = '';
+            if (statusFilter) statusFilter.value = '';
+            if (memberFilter) memberFilter.value = '';
+            
+            // Render projects
+            renderProjects();
+            
+            // Wait for render, then scroll to and highlight the specific project
+            setTimeout(() => {
+                const projectCard = document.querySelector(`.project-card[data-index="${projectIndex}"]`);
+                if (projectCard) {
+                    // Scroll to project
+                    projectCard.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'center' 
+                    });
+                    
+                    // Apply highlight effect
+                    const originalBoxShadow = projectCard.style.boxShadow;
+                    const originalTransform = projectCard.style.transform;
+                    const originalTransition = projectCard.style.transition;
+                    
+                    projectCard.style.transition = 'all 0.3s ease';
+                    projectCard.style.boxShadow = '0 0 0 4px #667eea, 0 8px 32px rgba(102, 126, 234, 0.4)';
+                    projectCard.style.transform = 'scale(1.02)';
+                    
+                    // Remove highlight after 2 seconds
+                    setTimeout(() => {
+                        projectCard.style.transition = 'all 0.5s ease';
+                        projectCard.style.boxShadow = originalBoxShadow;
+                        projectCard.style.transform = originalTransform;
+                        
+                        // Restore original transition after animation
+                        setTimeout(() => {
+                            projectCard.style.transition = originalTransition;
+                        }, 500);
+                    }, 2000);
+                } else {
+                    console.error('Project card not found for index:', projectIndex);
+                }
+            }, 200);
         }
 
         // Add team member
