@@ -3,7 +3,11 @@ import os
 
 from flask import Blueprint, jsonify, request, render_template
 from app import db
-from app.models import User, Post  # We'll create these models next
+from app.models import (
+    User, Post,
+    TeamMember, Project, ProjectTeam, ProjectImage, ProjectLink,
+    Task, Subtask
+)
 from datetime import datetime
 
 bp = Blueprint('main', __name__)
@@ -25,75 +29,295 @@ def about():
 
 @bp.route('/api/backup', methods=['GET', 'POST', 'PUT'])
 def backup_endpoint():
-    """Manage backup data in JSON file"""
-    json_file_path = os.path.join(os.path.dirname(__file__), '..', 'it-resource-manager-backup.json')
-    
-    if not os.path.exists(json_file_path):
-        json_file_path = '/app/it-resource-manager-backup.json'
+    """Manage backup data in PostgreSQL database"""
     
     if request.method == 'GET':
-        # Read data
+        # Read all data from database
         try:
-            with open(json_file_path, 'r') as file:
-                data = json.load(file)
-            return jsonify(data), 200
+
+            
+            # Get all team members
+            team_members = TeamMember.query.all()
+            team_members_data = [member.to_dict() for member in team_members]
+            
+            # Get all projects with tasks, images, links, team
+            projects = Project.query.order_by(Project.starred.desc(), Project.created_at.desc()).all()
+            projects_data = [project.to_dict(include_tasks=True) for project in projects]
+            
+            # Return data in backup format
+            backup_data = {
+                'teamMembers': team_members_data,
+                'projects': projects_data,
+                'exportDate': datetime.utcnow().isoformat(),
+                'version': '2.5.0'
+            }
+            
+            return jsonify(backup_data), 200
+            
         except Exception as e:
             return jsonify({'error': str(e)}), 500
     
     elif request.method == 'POST':
-        # Replace entire file with new data
+        # Replace entire database with new data (same as import)
         try:
+
+            
             new_data = request.get_json()
             
             if not new_data:
                 return jsonify({'error': 'No data provided'}), 400
             
-            with open(json_file_path, 'w') as file:
-                json.dump(new_data, file, indent=2)
+            if 'teamMembers' not in new_data or 'projects' not in new_data:
+                return jsonify({'error': 'Invalid data format. Expected teamMembers and projects'}), 400
+            
+            # Clear existing data
+            Subtask.query.delete()
+            Task.query.delete()
+            ProjectLink.query.delete()
+            ProjectImage.query.delete()
+            ProjectTeam.query.delete()
+            Project.query.delete()
+            TeamMember.query.delete()
+            
+            # Import team members
+            for member_data in new_data['teamMembers']:
+                member = TeamMember(
+                    name=member_data['name'],
+                    role=member_data['role'],
+                    skills=member_data.get('skills', []),
+                    workload=member_data.get('workload', 0)
+                )
+                db.session.add(member)
+            
+            db.session.flush()
+            
+            # Import projects
+            for project_data in new_data['projects']:
+                project = Project(
+                    name=project_data['name'],
+                    description=project_data.get('description', ''),
+                    status=project_data.get('status', 'planning'),
+                    starred=project_data.get('starred', False),
+                    meeting_minutes=project_data.get('meetingMinutes', '')
+                )
+                db.session.add(project)
+                db.session.flush()
+                
+                # Import project team
+                for member_name in project_data.get('team', []):
+                    pt = ProjectTeam(project_id=project.id, member_name=member_name)
+                    db.session.add(pt)
+                
+                # Import project images
+                for image_data in project_data.get('images', []):
+                    img = ProjectImage(
+                        project_id=project.id,
+                        image_data=image_data.get('image_data', image_data) if isinstance(image_data, dict) else image_data
+                    )
+                    db.session.add(img)
+                
+                # Import project links
+                for link_data in project_data.get('links', []):
+                    link = ProjectLink(
+                        project_id=project.id,
+                        url=link_data['url'],
+                        label=link_data.get('label')
+                    )
+                    db.session.add(link)
+                
+                # Import tasks
+                for task_data in project_data.get('tasks', []):
+                    task = Task(
+                        project_id=project.id,
+                        text=task_data['text'],
+                        completed=task_data.get('completed', False),
+                        start_date=task_data.get('startDate'),
+                        end_date=task_data.get('endDate'),
+                        assignee_name=task_data.get('assignee')
+                    )
+                    db.session.add(task)
+                    db.session.flush()
+                    
+                    # Import subtasks
+                    for subtask_data in task_data.get('subtasks', []):
+                        subtask = Subtask(
+                            task_id=task.id,
+                            text=subtask_data['text'],
+                            completed=subtask_data.get('completed', False),
+                            assignee_name=subtask_data.get('assignee')
+                        )
+                        db.session.add(subtask)
+            
+            db.session.commit()
             
             return jsonify({
-                'message': 'Backup saved successfully',
-                'timestamp': datetime.utcnow().isoformat()
+                'message': 'Backup saved successfully to database',
+                'timestamp': datetime.utcnow().isoformat(),
+                'teamMembers': len(new_data['teamMembers']),
+                'projects': len(new_data['projects'])
             }), 201
             
         except Exception as e:
+            db.session.rollback()
             return jsonify({'error': str(e)}), 500
     
     elif request.method == 'PUT':
-        # Update/merge with existing data
+        # Update/merge with existing database data
         try:
+
+            
             new_data = request.get_json()
             
             if not new_data:
                 return jsonify({'error': 'No data provided'}), 400
             
-            # Read existing data
-            try:
-                with open(json_file_path, 'r') as file:
-                    existing_data = json.load(file)
-            except FileNotFoundError:
-                existing_data = {}
+            updated_count = 0
+            created_count = 0
             
-            # Merge new data with existing
-            existing_data.update(new_data)
+            # Update or create team members
+            if 'teamMembers' in new_data:
+                for member_data in new_data['teamMembers']:
+                    existing_member = TeamMember.query.filter_by(name=member_data['name']).first()
+                    
+                    if existing_member:
+                        # Update existing
+                        existing_member.role = member_data.get('role', existing_member.role)
+                        existing_member.skills = member_data.get('skills', existing_member.skills)
+                        existing_member.workload = member_data.get('workload', existing_member.workload)
+                        updated_count += 1
+                    else:
+                        # Create new
+                        new_member = TeamMember(
+                            name=member_data['name'],
+                            role=member_data['role'],
+                            skills=member_data.get('skills', []),
+                            workload=member_data.get('workload', 0)
+                        )
+                        db.session.add(new_member)
+                        created_count += 1
             
-            # Write merged data back
-            with open(json_file_path, 'w') as file:
-                json.dump(existing_data, file, indent=2)
+            db.session.flush()
+            
+            # Update or create projects
+            if 'projects' in new_data:
+                for project_data in new_data['projects']:
+                    existing_project = Project.query.filter_by(name=project_data['name']).first()
+                    
+                    if existing_project:
+                        # Update existing project
+                        existing_project.description = project_data.get('description', existing_project.description)
+                        existing_project.status = project_data.get('status', existing_project.status)
+                        existing_project.starred = project_data.get('starred', existing_project.starred)
+                        existing_project.meeting_minutes = project_data.get('meetingMinutes', existing_project.meeting_minutes)
+                        
+                        # Update team members
+                        ProjectTeam.query.filter_by(project_id=existing_project.id).delete()
+                        for member_name in project_data.get('team', []):
+                            pt = ProjectTeam(project_id=existing_project.id, member_name=member_name)
+                            db.session.add(pt)
+                        
+                        # Update tasks
+                        Task.query.filter_by(project_id=existing_project.id).delete()
+                        for task_data in project_data.get('tasks', []):
+                            task = Task(
+                                project_id=existing_project.id,
+                                text=task_data['text'],
+                                completed=task_data.get('completed', False),
+                                start_date=task_data.get('startDate'),
+                                end_date=task_data.get('endDate'),
+                                assignee_name=task_data.get('assignee')
+                            )
+                            db.session.add(task)
+                            db.session.flush()
+                            
+                            # Add subtasks
+                            for subtask_data in task_data.get('subtasks', []):
+                                subtask = Subtask(
+                                    task_id=task.id,
+                                    text=subtask_data['text'],
+                                    completed=subtask_data.get('completed', False),
+                                    assignee_name=subtask_data.get('assignee')
+                                )
+                                db.session.add(subtask)
+                        
+                        updated_count += 1
+                    else:
+                        # Create new project
+                        new_project = Project(
+                            name=project_data['name'],
+                            description=project_data.get('description', ''),
+                            status=project_data.get('status', 'planning'),
+                            starred=project_data.get('starred', False),
+                            meeting_minutes=project_data.get('meetingMinutes', '')
+                        )
+                        db.session.add(new_project)
+                        db.session.flush()
+                        
+                        # Add team
+                        for member_name in project_data.get('team', []):
+                            pt = ProjectTeam(project_id=new_project.id, member_name=member_name)
+                            db.session.add(pt)
+                        
+                        # Add images
+                        for image_data in project_data.get('images', []):
+                            img = ProjectImage(
+                                project_id=new_project.id,
+                                image_data=image_data.get('image_data', image_data) if isinstance(image_data, dict) else image_data
+                            )
+                            db.session.add(img)
+                        
+                        # Add links
+                        for link_data in project_data.get('links', []):
+                            link = ProjectLink(
+                                project_id=new_project.id,
+                                url=link_data['url'],
+                                label=link_data.get('label')
+                            )
+                            db.session.add(link)
+                        
+                        # Add tasks
+                        for task_data in project_data.get('tasks', []):
+                            task = Task(
+                                project_id=new_project.id,
+                                text=task_data['text'],
+                                completed=task_data.get('completed', False),
+                                start_date=task_data.get('startDate'),
+                                end_date=task_data.get('endDate'),
+                                assignee_name=task_data.get('assignee')
+                            )
+                            db.session.add(task)
+                            db.session.flush()
+                            
+                            # Add subtasks
+                            for subtask_data in task_data.get('subtasks', []):
+                                subtask = Subtask(
+                                    task_id=task.id,
+                                    text=subtask_data['text'],
+                                    completed=subtask_data.get('completed', False),
+                                    assignee_name=subtask_data.get('assignee')
+                                )
+                                db.session.add(subtask)
+                        
+                        created_count += 1
+            
+            db.session.commit()
             
             return jsonify({
-                'message': 'Backup updated successfully',
-                'timestamp': datetime.utcnow().isoformat()
+                'message': 'Backup merged successfully with database',
+                'timestamp': datetime.utcnow().isoformat(),
+                'updated': updated_count,
+                'created': created_count
             }), 200
             
         except Exception as e:
+            db.session.rollback()
             return jsonify({'error': str(e)}), 500
 
 @bp.route('/api/data', methods=['GET'])
 def get_json_data():
     """Get data from PostgreSQL database (IT Resource Manager format)"""
     try:
-        from app.models import TeamMember, Project
+
         
         # Get all team members with their projects
         team_members = TeamMember.query.all()
@@ -372,7 +596,7 @@ def get_stats():
 def get_team_members():
     """Get all team members with their projects"""
     try:
-        from app.models import TeamMember
+
         team_members = TeamMember.query.all()
         return jsonify([member.to_dict() for member in team_members]), 200
     except Exception as e:
@@ -382,7 +606,7 @@ def get_team_members():
 def create_team_member():
     """Create a new team member"""
     try:
-        from app.models import TeamMember
+
         data = request.get_json()
         
         if not data or not data.get('name') or not data.get('role'):
@@ -412,7 +636,7 @@ def create_team_member():
 def update_team_member(member_id):
     """Update a team member"""
     try:
-        from app.models import TeamMember
+
         member = TeamMember.query.get_or_404(member_id)
         data = request.get_json()
         
@@ -436,7 +660,7 @@ def update_team_member(member_id):
 def delete_team_member(member_id):
     """Delete a team member"""
     try:
-        from app.models import TeamMember
+
         member = TeamMember.query.get_or_404(member_id)
         db.session.delete(member)
         db.session.commit()
@@ -450,7 +674,7 @@ def delete_team_member(member_id):
 def get_projects():
     """Get all projects with tasks, images, links, and team"""
     try:
-        from app.models import Project
+
         projects = Project.query.order_by(Project.starred.desc(), Project.created_at.desc()).all()
         return jsonify([project.to_dict() for project in projects]), 200
     except Exception as e:
@@ -460,7 +684,7 @@ def get_projects():
 def create_project():
     """Create a new project"""
     try:
-        from app.models import Project
+
         data = request.get_json()
         
         if not data or not data.get('name'):
@@ -490,7 +714,7 @@ def create_project():
 def update_project(project_id):
     """Update a project"""
     try:
-        from app.models import Project
+
         project = Project.query.get_or_404(project_id)
         data = request.get_json()
         
@@ -516,7 +740,7 @@ def update_project(project_id):
 def delete_project(project_id):
     """Delete a project (cascades to tasks, images, links)"""
     try:
-        from app.models import Project
+
         project = Project.query.get_or_404(project_id)
         db.session.delete(project)
         db.session.commit()
@@ -530,7 +754,7 @@ def delete_project(project_id):
 def add_team_member_to_project(project_id):
     """Add a team member to a project"""
     try:
-        from app.models import Project, TeamMember, ProjectTeam
+
         project = Project.query.get_or_404(project_id)
         data = request.get_json()
         
@@ -562,7 +786,7 @@ def add_team_member_to_project(project_id):
 def remove_team_member_from_project(project_id, member_name):
     """Remove a team member from a project"""
     try:
-        from app.models import TeamMember, ProjectTeam
+
         
         ProjectTeam.query.filter_by(
             project_id=project_id,
@@ -588,7 +812,7 @@ def remove_team_member_from_project(project_id, member_name):
 def add_project_image(project_id):
     """Add an image to a project"""
     try:
-        from app.models import Project, ProjectImage
+
         project = Project.query.get_or_404(project_id)
         data = request.get_json()
         
@@ -613,7 +837,7 @@ def add_project_image(project_id):
 def delete_project_image(project_id, image_id):
     """Delete a project image"""
     try:
-        from app.models import ProjectImage
+
         image = ProjectImage.query.filter_by(id=image_id, project_id=project_id).first_or_404()
         db.session.delete(image)
         db.session.commit()
@@ -627,7 +851,7 @@ def delete_project_image(project_id, image_id):
 def create_task(project_id):
     """Create a new task"""
     try:
-        from app.models import Project, Task
+
         project = Project.query.get_or_404(project_id)
         data = request.get_json()
         
@@ -656,7 +880,7 @@ def create_task(project_id):
 def update_task(task_id):
     """Update a task"""
     try:
-        from app.models import Task
+
         task = Task.query.get_or_404(task_id)
         data = request.get_json()
         
@@ -682,7 +906,7 @@ def update_task(task_id):
 def delete_task(task_id):
     """Delete a task"""
     try:
-        from app.models import Task
+
         task = Task.query.get_or_404(task_id)
         db.session.delete(task)
         db.session.commit()
@@ -696,7 +920,7 @@ def delete_task(task_id):
 def create_subtask(task_id):
     """Create a new subtask"""
     try:
-        from app.models import Task, Subtask
+
         task = Task.query.get_or_404(task_id)
         data = request.get_json()
         
@@ -723,7 +947,7 @@ def create_subtask(task_id):
 def update_subtask(subtask_id):
     """Update a subtask"""
     try:
-        from app.models import Subtask
+
         subtask = Subtask.query.get_or_404(subtask_id)
         data = request.get_json()
         
@@ -745,7 +969,7 @@ def update_subtask(subtask_id):
 def delete_subtask(subtask_id):
     """Delete a subtask"""
     try:
-        from app.models import Subtask
+
         subtask = Subtask.query.get_or_404(subtask_id)
         db.session.delete(subtask)
         db.session.commit()
@@ -759,7 +983,7 @@ def delete_subtask(subtask_id):
 def import_data():
     """Import data from JSON export to PostgreSQL"""
     try:
-        from app.models import TeamMember, Project, ProjectTeam, ProjectImage, ProjectLink, Task, Subtask
+
         
         data = request.get_json()
         

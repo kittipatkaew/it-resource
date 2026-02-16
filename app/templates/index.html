@@ -2210,6 +2210,43 @@
             }
         ];
 
+        // API Configuration
+        const API_BASE_URL = window.location.port === '5001' ? 'http://localhost:5001' : '';
+        
+        // Load data from API on startup
+        async function loadData() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/data`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.teamMembers) {
+                        teamMembers.length = 0;
+                        teamMembers.push(...data.teamMembers);
+                    }
+                    if (data.projects) {
+                        projects.length = 0;
+                        projects.push(...data.projects);
+                    }
+                    console.log('✓ Data loaded from server');
+                    console.log(`  - Team Members: ${teamMembers.length}`);
+                    console.log(`  - Projects: ${projects.length}`);
+                    
+                    // Only render if we're on the page and functions exist
+                    // Don't render calendar on initial load (it will render when tab is clicked)
+                    if (typeof renderProjects === 'function') {
+                        renderProjects();
+                    }
+                    if (typeof renderTaskOverview === 'function') {
+                        renderTaskOverview();
+                    }
+                } else {
+                    console.warn('Failed to load data from server, using defaults');
+                }
+            } catch (error) {
+                console.warn('Could not connect to server, using default data:', error.message);
+            }
+        }
+
         let projects = [
             {
                 name: "E-commerce Platform",
@@ -2450,12 +2487,16 @@
                     <div class="project-image-container">
                         ${project.images && project.images.length > 0 ? `
                             <div class="project-images-grid">
-                                ${project.images.map((img, imgIndex) => `
-                                    <div class="project-image-item" onclick="viewImage('${img.replace(/'/g, "\\'")}')">
-                                        <img src="${img}" class="project-image" alt="${project.name}">
-                                        <button class="remove-single-image-btn" onclick="removeProjectImageByIndex(event, ${pIndex}, ${imgIndex})" title="Remove image">×</button>
+                                ${project.images.map((img, imgIndex) => {
+                                    // Handle both object {id, image_data} and string formats
+                                    const imageData = typeof img === 'string' ? img : img.image_data;
+                                    const imageId = typeof img === 'object' ? img.id : imgIndex;
+                                    return `
+                                    <div class="project-image-item" onclick="viewImage('${imageData.replace(/'/g, "\\'")}')">
+                                        <img src="${imageData}" class="project-image" alt="${project.name}">
+                                        <button class="remove-single-image-btn" onclick="removeProjectImageByIndex(event, ${pIndex}, ${imgIndex}, ${imageId})" title="Remove image">×</button>
                                     </div>
-                                `).join('')}
+                                `}).join('')}
                                 <div class="project-add-image-btn" onclick="triggerImageUpload(${pIndex})">
                                     + Add Image
                                 </div>
@@ -3647,12 +3688,37 @@
             event.target.value = '';
         }
 
-        function removeProjectImageByIndex(event, projectIndex, imageIndex) {
+        async function removeProjectImageByIndex(event, projectIndex, imageIndex, imageId) {
             event.stopPropagation();
             if (confirm('Remove this image?')) {
-                projects[projectIndex].images.splice(imageIndex, 1);
-                renderProjects();
-                persistData();
+                const project = projects[projectIndex];
+                
+                // If image has an ID (from database), delete via API
+                if (imageId && project.id) {
+                    try {
+                        const response = await fetch(`${API_BASE_URL}/api/projects/${project.id}/images/${imageId}`, {
+                            method: 'DELETE'
+                        });
+                        
+                        if (response.ok) {
+                            // Remove from local array
+                            project.images.splice(imageIndex, 1);
+                            renderProjects();
+                            await loadData(); // Reload from server
+                        } else {
+                            console.error('Failed to delete image from server');
+                            alert('Failed to delete image from server');
+                        }
+                    } catch (error) {
+                        console.error('Error deleting image:', error);
+                        alert('Error deleting image');
+                    }
+                } else {
+                    // Local-only image (not yet saved to server)
+                    project.images.splice(imageIndex, 1);
+                    renderProjects();
+                    persistData();
+                }
             }
         }
 
@@ -4495,11 +4561,19 @@
 
         // Export/Import Functions
         function exportData() {
+            // Normalize images to string format for export
+            const normalizedProjects = projects.map(p => ({
+                ...p,
+                images: p.images ? p.images.map(img => 
+                    typeof img === 'string' ? img : img.image_data
+                ) : []
+            }));
+            
             const data = {
                 teamMembers: teamMembers,
-                projects: projects,
+                projects: normalizedProjects,
                 exportDate: new Date().toISOString(),
-                version: "1.0"
+                version: "2.5.0"
             };
             
             const dataStr = JSON.stringify(data, null, 2);
@@ -4531,42 +4605,117 @@
             }
         }
 
-        function importData(event) {
+        async function importData(event) {
             const file = event.target.files[0];
             if (!file) return;
             
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = async function(e) {
                 try {
                     const data = JSON.parse(e.target.result);
                     
                     // Validate data structure
                     if (!data.teamMembers || !data.projects) {
-                        alert('Invalid data file format!');
+                        alert('Invalid data file format! Expected teamMembers and projects.');
                         return;
                     }
                     
-                    // Confirm before importing
-                    if (confirm('This will replace all current data. Are you sure you want to import?')) {
-                        teamMembers = data.teamMembers;
-                        projects = data.projects;
-
-                        renderTeam();
-                        renderProjects();
-                        // persist imported data to server
-                        persistData();
-
-                        alert(`Data imported successfully!\n\nTeam Members: ${teamMembers.length}\nProjects: ${projects.length}\nExported on: ${new Date(data.exportDate).toLocaleDateString()}`);
+                    // Show import preview
+                    const confirmMessage = `Import Data to PostgreSQL?\n\n` +
+                        `Team Members: ${data.teamMembers.length}\n` +
+                        `Projects: ${data.projects.length}\n` +
+                        `Export Date: ${data.exportDate ? new Date(data.exportDate).toLocaleDateString() : 'Unknown'}\n\n` +
+                        `⚠️ WARNING: This will REPLACE ALL data in the database!\n\n` +
+                        `Click OK to proceed.`;
+                    
+                    if (!confirm(confirmMessage)) {
+                        return;
                     }
+                    
+                    // Show loading indicator
+                    const loadingMsg = document.createElement('div');
+                    loadingMsg.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.8); color: white; padding: 20px 40px; border-radius: 8px; z-index: 10000; font-size: 18px;';
+                    loadingMsg.textContent = '⏳ Importing data to PostgreSQL...';
+                    document.body.appendChild(loadingMsg);
+                    
+                    try {
+                        // Send to PostgreSQL via API
+                        const response = await fetch(`${API_BASE_URL}/api/import`, {
+                            method: 'POST',
+                            headers: { 
+                                'Content-Type': 'application/json' 
+                            },
+                            body: JSON.stringify(data)
+                        });
+                        
+                        const result = await response.json();
+                        
+                        // Remove loading indicator
+                        document.body.removeChild(loadingMsg);
+                        
+                        if (response.ok) {
+                            // Reload data from server
+                            await loadData();
+                            
+                            // Show success message
+                            alert(`✅ Data imported successfully to PostgreSQL!\n\n` +
+                                `Team Members: ${data.teamMembers.length}\n` +
+                                `Projects: ${data.projects.length}\n` +
+                                `Timestamp: ${result.timestamp || new Date().toISOString()}\n\n` +
+                                `Database has been updated!`);
+                        } else {
+                            throw new Error(result.error || 'Import failed');
+                        }
+                        
+                    } catch (apiError) {
+                        // Remove loading indicator
+                        if (document.body.contains(loadingMsg)) {
+                            document.body.removeChild(loadingMsg);
+                        }
+                        
+                        console.error('API import failed:', apiError);
+                        
+                        // Fallback: update local data and use persistData
+                        if (confirm(`❌ Direct import to database failed: ${apiError.message}\n\n` +
+                                   `Would you like to import locally and sync to server?\n\n` +
+                                   `(This uses the backup endpoint instead)`)) {
+                            
+                            teamMembers.length = 0;
+                            teamMembers.push(...data.teamMembers);
+                            projects.length = 0;
+                            projects.push(...data.projects);
+                            
+                            // Safely render all views
+                            if (typeof renderTeam === 'function') renderTeam();
+                            if (typeof renderProjects === 'function') renderProjects();
+                            if (typeof renderTaskOverview === 'function') renderTaskOverview();
+                            if (typeof renderCalendarView === 'function') renderCalendarView();
+                            
+                            // Try to persist to server
+                            await persistData();
+                            
+                            alert(`⚠️ Data imported locally and synced to server via backup endpoint.\n\n` +
+                                `Team Members: ${teamMembers.length}\n` +
+                                `Projects: ${projects.length}`);
+                        }
+                    }
+                    
                 } catch (error) {
                     alert('Error reading file: ' + error.message);
+                    console.error('Import error:', error);
                 }
             };
+            
             reader.readAsText(file);
             
             // Reset file input
             event.target.value = '';
         }
+
+        // Initialize: Load data from server on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadData();
+        });
     </script>
 </body>
 </html>
