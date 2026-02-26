@@ -698,7 +698,9 @@ def create_project():
             description=data.get('description', ''),
             status=data.get('status', 'planning'),
             starred=data.get('starred', False),
-            meeting_minutes=data.get('meetingMinutes', '')
+            meeting_minutes=data.get('meetingMinutes', ''),
+            channels=data.get('channels', []),  # Support channels on creation
+            applications=data.get('applications', [])  # New: support applications on creation
         )
         
         db.session.add(project)
@@ -728,6 +730,10 @@ def update_project(project_id):
             project.starred = data['starred']
         if 'meetingMinutes' in data:
             project.meeting_minutes = data['meetingMinutes']
+        if 'channels' in data:
+            project.channels = data['channels']  # Handle channels
+        if 'applications' in data:
+            project.applications = data['applications']  # New: handle applications
         
         db.session.commit()
         return jsonify(project.to_dict()), 200

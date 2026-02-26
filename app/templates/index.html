@@ -584,6 +584,166 @@
             background: #f5f7fa;
         }
 
+        /* Channel Badges */
+        .channel-container {
+            margin: 10px 0;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .channel-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #666;
+        }
+
+        .channel-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .channel-badge:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .channel-badge.selected {
+            border-color: currentColor;
+            font-weight: 600;
+        }
+
+        .channel-badge.agent {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .channel-badge.agent.selected {
+            background: #1976d2;
+            color: white;
+        }
+
+        .channel-badge.non-agent {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .channel-badge.non-agent.selected {
+            background: #7b1fa2;
+            color: white;
+        }
+
+        .channel-badge.direct-marketing {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .channel-badge.direct-marketing.selected {
+            background: #388e3c;
+            color: white;
+        }
+
+        .channel-badge .remove-channel {
+            margin-left: 4px;
+            font-weight: bold;
+            opacity: 0.7;
+        }
+
+        .channel-badge .remove-channel:hover {
+            opacity: 1;
+        }
+
+        /* Application Badges */
+        .application-container {
+            margin: 10px 0;
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .application-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #666;
+        }
+
+        .application-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1.5px solid transparent;
+            white-space: nowrap;
+        }
+
+        .application-badge:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+        }
+
+        .application-badge.selected {
+            border-color: currentColor;
+            font-weight: 600;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+        }
+
+        /* Individual application colors */
+        .app-tl-pro-plus { background: #fff3e0; color: #e65100; }
+        .app-tl-pro-plus.selected { background: #e65100; color: white; }
+
+        .app-tl-team-plus { background: #fce4ec; color: #c2185b; }
+        .app-tl-team-plus.selected { background: #c2185b; color: white; }
+
+        .app-tl-after-plus { background: #f3e5f5; color: #7b1fa2; }
+        .app-tl-after-plus.selected { background: #7b1fa2; color: white; }
+
+        .app-new-da { background: #e8f5e9; color: #2e7d32; }
+        .app-new-da.selected { background: #2e7d32; color: white; }
+
+        .app-e-selling { background: #e1f5fe; color: #0277bd; }
+        .app-e-selling.selected { background: #0277bd; color: white; }
+
+        .app-e-portal { background: #e0f2f1; color: #00695c; }
+        .app-e-portal.selected { background: #00695c; color: white; }
+
+        .app-nsp { background: #fff9c4; color: #f57f17; }
+        .app-nsp.selected { background: #f57f17; color: white; }
+
+        .app-tl-smart { background: #e8eaf6; color: #3f51b5; }
+        .app-tl-smart.selected { background: #3f51b5; color: white; }
+
+        .app-common { background: #eeeeee; color: #424242; }
+        .app-common.selected { background: #424242; color: white; }
+
+        .app-dfl { background: #fbe9e7; color: #bf360c; }
+        .app-dfl.selected { background: #bf360c; color: white; }
+
+        .application-badge .remove-app {
+            margin-left: 3px;
+            font-weight: bold;
+            opacity: 0.7;
+            font-size: 13px;
+        }
+
+        .application-badge .remove-app:hover {
+            opacity: 1;
+        }
+
         /* Availability Calendar */
         .calendar {
             margin-top: 20px;
@@ -2381,29 +2541,265 @@
             });
         }
 
-        function toggleStar(projectIndex) {
+        async function toggleStar(projectIndex) {
             const project = projects[projectIndex];
+            
+            // Check if project has an ID (from database)
+            if (!project.id) {
+                console.warn('Project has no ID, updating locally only');
+                project.starred = !project.starred;
+                renderProjects();
+                return;
+            }
+            
             const newVal = !project.starred;
-            // optimistic update
+            const oldVal = project.starred;
+            
+            // Optimistic update
             project.starred = newVal;
             renderProjects();
 
-            // persist to server
-            fetch('/api/projects/' + encodeURIComponent(project.name), {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ starred: newVal })
-            }).then(res => res.json()).then(updated => {
-                // sync local copy if server returned updated project
-                const idx = projects.findIndex(p => p.name === updated.name);
-                if (idx >= 0) projects[idx] = updated;
-                renderProjects();
-            }).catch(err => {
+            try {
+                // Persist to server using project ID
+                const response = await fetch(`${API_BASE_URL}/api/projects/${project.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        name: project.name,
+                        description: project.description,
+                        status: project.status,
+                        starred: newVal,
+                        meetingMinutes: project.meetingMinutes || project.meeting_minutes || ''
+                    })
+                });
+                
+                if (response.ok) {
+                    const updated = await response.json();
+                    console.log('✓ Project starred status updated');
+                    
+                    // Update local project with server response
+                    const idx = projects.findIndex(p => p.id === project.id);
+                    if (idx >= 0) {
+                        // Preserve local data structure while updating from server
+                        projects[idx].starred = updated.starred;
+                    }
+                    renderProjects();
+                } else {
+                    throw new Error('Failed to update project');
+                }
+            } catch (err) {
                 console.error('Failed to persist star:', err);
-                // revert optimistic
-                project.starred = !newVal;
+                // Revert optimistic update
+                project.starred = oldVal;
                 renderProjects();
-            });
+                alert('Failed to update star status. Please try again.');
+            }
+        }
+
+        // Channel Management Functions
+        async function toggleProjectChannel(projectIndex, channel) {
+            const project = projects[projectIndex];
+            
+            // Initialize channels array if it doesn't exist
+            if (!project.channels) {
+                project.channels = [];
+            }
+            
+            // Check if channel already exists
+            if (project.channels.includes(channel)) {
+                return; // Already has this channel
+            }
+            
+            // Add channel
+            project.channels.push(channel);
+            
+            // Optimistic UI update
+            renderProjects();
+            
+            // Persist to server if project has ID
+            if (project.id) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/projects/${project.id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            name: project.name,
+                            description: project.description,
+                            status: project.status,
+                            starred: project.starred,
+                            meetingMinutes: project.meetingMinutes || project.meeting_minutes || '',
+                            channels: project.channels
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        console.log(`✓ Channel "${channel}" added to project`);
+                    } else {
+                        throw new Error('Failed to update project');
+                    }
+                } catch (err) {
+                    console.error('Failed to add channel:', err);
+                    // Revert on error
+                    project.channels = project.channels.filter(c => c !== channel);
+                    renderProjects();
+                    alert('Failed to add channel. Please try again.');
+                }
+            } else {
+                // No ID, just persist locally
+                await persistData();
+            }
+        }
+
+        async function removeChannelFromProject(projectIndex, channel) {
+            const project = projects[projectIndex];
+            
+            if (!project.channels) {
+                return;
+            }
+            
+            // Remove channel
+            const oldChannels = [...project.channels];
+            project.channels = project.channels.filter(c => c !== channel);
+            
+            // Optimistic UI update
+            renderProjects();
+            
+            // Persist to server if project has ID
+            if (project.id) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/projects/${project.id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            name: project.name,
+                            description: project.description,
+                            status: project.status,
+                            starred: project.starred,
+                            meetingMinutes: project.meetingMinutes || project.meeting_minutes || '',
+                            channels: project.channels
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        console.log(`✓ Channel "${channel}" removed from project`);
+                    } else {
+                        throw new Error('Failed to update project');
+                    }
+                } catch (err) {
+                    console.error('Failed to remove channel:', err);
+                    // Revert on error
+                    project.channels = oldChannels;
+                    renderProjects();
+                    alert('Failed to remove channel. Please try again.');
+                }
+            } else {
+                // No ID, just persist locally
+                await persistData();
+            }
+        }
+
+        // Application Management Functions
+        async function toggleProjectApplication(projectIndex, application) {
+            const project = projects[projectIndex];
+            
+            // Initialize applications array if it doesn't exist
+            if (!project.applications) {
+                project.applications = [];
+            }
+            
+            // Check if application already exists
+            if (project.applications.includes(application)) {
+                return; // Already has this application
+            }
+            
+            // Add application
+            project.applications.push(application);
+            
+            // Optimistic UI update
+            renderProjects();
+            
+            // Persist to server if project has ID
+            if (project.id) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/projects/${project.id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            name: project.name,
+                            description: project.description,
+                            status: project.status,
+                            starred: project.starred,
+                            meetingMinutes: project.meetingMinutes || project.meeting_minutes || '',
+                            channels: project.channels || [],
+                            applications: project.applications
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        console.log(`✓ Application "${application}" added to project`);
+                    } else {
+                        throw new Error('Failed to update project');
+                    }
+                } catch (err) {
+                    console.error('Failed to add application:', err);
+                    // Revert on error
+                    project.applications = project.applications.filter(a => a !== application);
+                    renderProjects();
+                    alert('Failed to add application. Please try again.');
+                }
+            } else {
+                // No ID, just persist locally
+                await persistData();
+            }
+        }
+
+        async function removeApplicationFromProject(projectIndex, application) {
+            const project = projects[projectIndex];
+            
+            if (!project.applications) {
+                return;
+            }
+            
+            // Remove application
+            const oldApplications = [...project.applications];
+            project.applications = project.applications.filter(a => a !== application);
+            
+            // Optimistic UI update
+            renderProjects();
+            
+            // Persist to server if project has ID
+            if (project.id) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/projects/${project.id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            name: project.name,
+                            description: project.description,
+                            status: project.status,
+                            starred: project.starred,
+                            meetingMinutes: project.meetingMinutes || project.meeting_minutes || '',
+                            channels: project.channels || [],
+                            applications: project.applications
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        console.log(`✓ Application "${application}" removed from project`);
+                    } else {
+                        throw new Error('Failed to update project');
+                    }
+                } catch (err) {
+                    console.error('Failed to remove application:', err);
+                    // Revert on error
+                    project.applications = oldApplications;
+                    renderProjects();
+                    alert('Failed to remove application. Please try again.');
+                }
+            } else {
+                // No ID, just persist locally
+                await persistData();
+            }
         }
 
         // Load server data (projects + teamMembers) if available
@@ -2511,6 +2907,66 @@
                     <div style="color: #666; font-size: 14px; margin-bottom: 15px;">
                         ${project.description}
                     </div>
+                    
+                    <!-- Channel Selection -->
+                    <div class="channel-container">
+                        <span class="channel-label">📢 Channels:</span>
+                        ${project.channels && project.channels.length > 0 ? 
+                            project.channels.map(channel => `
+                                <div class="channel-badge ${channel.toLowerCase().replace(/\s+/g, '-')} selected">
+                                    ${channel}
+                                    <span class="remove-channel" onclick="removeChannelFromProject(${pIndex}, '${channel}')">×</span>
+                                </div>
+                            `).join('') 
+                            : '<span style="color: #999; font-size: 12px;">No channels assigned</span>'
+                        }
+                        <div class="channel-badge agent ${project.channels && project.channels.includes('Agent') ? '' : ''}" 
+                             onclick="toggleProjectChannel(${pIndex}, 'Agent')"
+                             style="${project.channels && project.channels.includes('Agent') ? 'display: none;' : ''}"
+                             title="Add Agent channel">
+                            + Agent
+                        </div>
+                        <div class="channel-badge non-agent ${project.channels && project.channels.includes('Non-agent') ? '' : ''}" 
+                             onclick="toggleProjectChannel(${pIndex}, 'Non-agent')"
+                             style="${project.channels && project.channels.includes('Non-agent') ? 'display: none;' : ''}"
+                             title="Add Non-agent channel">
+                            + Non-agent
+                        </div>
+                        <div class="channel-badge direct-marketing ${project.channels && project.channels.includes('Direct marketing') ? '' : ''}" 
+                             onclick="toggleProjectChannel(${pIndex}, 'Direct marketing')"
+                             style="${project.channels && project.channels.includes('Direct marketing') ? 'display: none;' : ''}"
+                             title="Add Direct marketing channel">
+                            + Direct marketing
+                        </div>
+                    </div>
+                    
+                    <!-- Application Selection -->
+                    <div class="application-container">
+                        <span class="application-label">💻 Applications:</span>
+                        ${project.applications && project.applications.length > 0 ? 
+                            project.applications.map(app => {
+                                const appClass = app.toLowerCase().replace(/\s+/g, '-');
+                                return `
+                                <div class="application-badge app-${appClass} selected">
+                                    ${app}
+                                    <span class="remove-app" onclick="removeApplicationFromProject(${pIndex}, '${app.replace(/'/g, "\\'")}')">×</span>
+                                </div>
+                            `}).join('') 
+                            : '<span style="color: #999; font-size: 11px;">No applications assigned</span>'
+                        }
+                        ${['TL PRO PLUS', 'TL TEAM PLUS', 'TL AFTER PLUS', 'New DA', 'E-Selling', 'E-Portal', 'NSP', 'TL SMART', 'Common', 'DFL'].map(app => {
+                            const appClass = app.toLowerCase().replace(/\s+/g, '-');
+                            const hasApp = project.applications && project.applications.includes(app);
+                            return `
+                            <div class="application-badge app-${appClass}" 
+                                 onclick="toggleProjectApplication(${pIndex}, '${app.replace(/'/g, "\\'")}')"
+                                 style="${hasApp ? 'display: none;' : ''}"
+                                 title="Add ${app}">
+                                + ${app}
+                            </div>
+                        `}).join('')}
+                    </div>
+                    
                     <div class="project-team">
                         <div class="project-team-label">Team Members (${project.team.length})</div>
                         <div class="team-members">

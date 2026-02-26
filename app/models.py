@@ -43,6 +43,8 @@ class Project(db.Model):
     status = db.Column(db.String(50), default='planning', nullable=False)
     starred = db.Column(db.Boolean, default=False)
     meeting_minutes = db.Column(db.Text)
+    channels = db.Column(ARRAY(db.String), default=[], nullable=True)  # Channels field
+    applications = db.Column(ARRAY(db.String), default=[], nullable=True)  # New: applications field
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -60,6 +62,8 @@ class Project(db.Model):
             'status': self.status,
             'starred': self.starred,
             'meetingMinutes': self.meeting_minutes,
+            'channels': self.channels or [],  # Include channels in response
+            'applications': self.applications or [],  # New: include applications in response
             'images': [img.to_dict() for img in self.images],
             'links': [link.to_dict() for link in self.links],
             'team': [pt.member.name for pt in self.project_teams],
