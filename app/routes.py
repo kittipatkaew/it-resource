@@ -690,8 +690,10 @@ def create_project():
         if not data or not data.get('name'):
             return jsonify({'error': 'Project name is required'}), 400
         
-        if Project.query.filter_by(name=data['name']).first():
-            return jsonify({'error': 'Project with this name already exists'}), 409
+        # Check if project already exists by name
+        existing = Project.query.filter_by(name=data['name']).first()
+        if existing:
+            return jsonify({'error': 'Project with this name already exists', 'existingId': existing.id}), 409
         
         # Parse delivery date if provided
         delivery_date = None
@@ -722,12 +724,127 @@ def create_project():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+@bp.route('/api/projects/sync', methods=['POST'])
+def sync_project():
+    """Sync/recreate a project in the database (for projects with invalid IDs)"""
+    try:
+        data = request.get_json()
+        
+        if not data or not data.get('name'):
+            return jsonify({'error': 'Project name is required'}), 400
+        
+        # Check if project already exists by name
+        existing = Project.query.filter_by(name=data['name']).first()
+        if existing:
+            # Update existing project instead of creating duplicate
+            if 'description' in data:
+                existing.description = data['description']
+            if 'status' in data:
+                existing.status = data['status']
+            if 'starred' in data:
+                existing.starred = data['starred']
+            if 'meetingMinutes' in data:
+                existing.meeting_minutes = data['meetingMinutes']
+            if 'channels' in data:
+                existing.channels = data['channels']
+            if 'applications' in data:
+                existing.applications = data['applications']
+            if 'deliveryDate' in data:
+                if data['deliveryDate']:
+                    try:
+                        from datetime import datetime as dt
+                        existing.delivery_date = dt.fromisoformat(data['deliveryDate'].replace('Z', '+00:00')).date()
+                    except:
+                        existing.delivery_date = None
+                else:
+                    existing.delivery_date = None
+            
+            db.session.commit()
+            return jsonify({'message': 'Project updated with existing database record', 'project': existing.to_dict()}), 200
+        
+        # Create new project
+        delivery_date = None
+        if data.get('deliveryDate'):
+            try:
+                from datetime import datetime as dt
+                delivery_date = dt.fromisoformat(data['deliveryDate'].replace('Z', '+00:00')).date()
+            except:
+                pass
+        
+        project = Project(
+            name=data['name'],
+            description=data.get('description', ''),
+            status=data.get('status', 'planning'),
+            starred=data.get('starred', False),
+            meeting_minutes=data.get('meetingMinutes', ''),
+            channels=data.get('channels', []),
+            applications=data.get('applications', []),
+            delivery_date=delivery_date
+        )
+        
+        db.session.add(project)
+        db.session.flush()  # Get the ID
+        
+        # Add tasks if provided
+        if 'tasks' in data and data['tasks']:
+            for task_data in data['tasks']:
+                from datetime import datetime as dt
+                start_date = None
+                end_date = None
+                
+                if task_data.get('startDate'):
+                    try:
+                        start_date = dt.fromisoformat(task_data['startDate'].replace('Z', '+00:00')).date()
+                    except:
+                        pass
+                
+                if task_data.get('endDate'):
+                    try:
+                        end_date = dt.fromisoformat(task_data['endDate'].replace('Z', '+00:00')).date()
+                    except:
+                        pass
+                
+                task = Task(
+                    project_id=project.id,
+                    text=task_data.get('text', ''),
+                    completed=task_data.get('completed', False),
+                    start_date=start_date,
+                    end_date=end_date,
+                    assignee_name=task_data.get('assignee')
+                )
+                db.session.add(task)
+                db.session.flush()
+                
+                # Add subtasks if present
+                if 'subtasks' in task_data and task_data['subtasks']:
+                    for subtask_data in task_data['subtasks']:
+                        subtask = Subtask(
+                            task_id=task.id,
+                            text=subtask_data.get('text', ''),
+                            completed=subtask_data.get('completed', False),
+                            assignee_name=subtask_data.get('assignee')
+                        )
+                        db.session.add(subtask)
+        
+        db.session.commit()
+        
+        return jsonify({'message': 'Project synced to database', 'project': project.to_dict(include_tasks=True)}), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 @bp.route('/api/projects/<int:project_id>', methods=['PUT'])
 def update_project(project_id):
     """Update a project"""
     try:
-
-        project = Project.query.get_or_404(project_id)
+        from werkzeug.exceptions import NotFound
+        
+        try:
+            project = Project.query.get_or_404(project_id)
+        except NotFound:
+            return jsonify({'error': 'Project not found'}), 404
+        
         data = request.get_json()
         
         if 'name' in data:
@@ -812,8 +929,13 @@ def update_project(project_id):
 def delete_project(project_id):
     """Delete a project (cascades to tasks, images, links)"""
     try:
-
-        project = Project.query.get_or_404(project_id)
+        from werkzeug.exceptions import NotFound
+        
+        try:
+            project = Project.query.get_or_404(project_id)
+        except NotFound:
+            return jsonify({'error': 'Project not found'}), 404
+        
         db.session.delete(project)
         db.session.commit()
         return jsonify({'message': 'Project deleted successfully'}), 200
@@ -909,8 +1031,13 @@ def add_project_image(project_id):
 def delete_project_image(project_id, image_id):
     """Delete a project image"""
     try:
-
-        image = ProjectImage.query.filter_by(id=image_id, project_id=project_id).first_or_404()
+        from werkzeug.exceptions import NotFound
+        
+        try:
+            image = ProjectImage.query.filter_by(id=image_id, project_id=project_id).first_or_404()
+        except NotFound:
+            return jsonify({'error': 'Image not found'}), 404
+        
         db.session.delete(image)
         db.session.commit()
         return jsonify({'message': 'Image deleted successfully'}), 200
@@ -923,8 +1050,13 @@ def delete_project_image(project_id, image_id):
 def create_task(project_id):
     """Create a new task"""
     try:
-
-        project = Project.query.get_or_404(project_id)
+        from werkzeug.exceptions import NotFound
+        
+        try:
+            project = Project.query.get_or_404(project_id)
+        except NotFound:
+            return jsonify({'error': 'Project not found'}), 404
+        
         data = request.get_json()
         
         if not data or not data.get('text'):
