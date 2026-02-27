@@ -632,13 +632,11 @@
             color: white;
         }
 
-        .channel-badge.partnership,
         .channel-badge.non-agent {
             background: #f3e5f5;
             color: #7b1fa2;
         }
 
-        .channel-badge.partnership.selected,
         .channel-badge.non-agent.selected {
             background: #7b1fa2;
             color: white;
@@ -3557,11 +3555,11 @@
                              title="Add Agent channel">
                             + Agent
                         </div>
-                        <div class="channel-badge partnership ${project.channels && project.channels.includes('Partnership') ? '' : ''}" 
-                             onclick="toggleProjectChannel(${pIndex}, 'Partnership')"
-                             style="${project.channels && project.channels.includes('Partnership') ? 'display: none;' : ''}"
-                             title="Add Partnership channel">
-                            + Partnership
+                        <div class="channel-badge non-agent ${project.channels && project.channels.includes('Non-agent') ? '' : ''}" 
+                             onclick="toggleProjectChannel(${pIndex}, 'Non-agent')"
+                             style="${project.channels && project.channels.includes('Non-agent') ? 'display: none;' : ''}"
+                             title="Add Non-agent channel">
+                            + Non-agent
                         </div>
                         <div class="channel-badge direct-marketing ${project.channels && project.channels.includes('Direct marketing') ? '' : ''}" 
                              onclick="toggleProjectChannel(${pIndex}, 'Direct marketing')"
@@ -5771,7 +5769,7 @@
             // Render hierarchy
             let html = '';
             
-            const channelOrder = ['Agent', 'Partnership', 'Direct marketing', 'No Channel'];
+            const channelOrder = ['Agent', 'Non-agent', 'Direct marketing', 'No Channel'];
             const sortedChannels = Object.keys(channelGroups).sort((a, b) => {
                 const aIndex = channelOrder.indexOf(a);
                 const bIndex = channelOrder.indexOf(b);
@@ -6040,7 +6038,7 @@ End: ${endDate ? endDate.toLocaleDateString() : '—'}">
             // Build HTML
             let rowHtml = '';
             
-            const channelOrder = ['Agent', 'Partnership', 'Direct marketing', 'No Channel'];
+            const channelOrder = ['Agent', 'Non-agent', 'Direct marketing', 'No Channel'];
             const sortedChannels = Object.keys(hierarchy).sort((a, b) => {
                 const aIndex = channelOrder.indexOf(a);
                 const bIndex = channelOrder.indexOf(b);

@@ -735,8 +735,37 @@ def update_project(project_id):
         if 'applications' in data:
             project.applications = data['applications']  # New: handle applications
         
+        # Handle tasks if provided (full replacement)
+        if 'tasks' in data:
+            # Remove all existing tasks for this project
+            Task.query.filter_by(project_id=project_id).delete()
+            
+            # Add new tasks from data
+            for task_data in data['tasks']:
+                task = Task(
+                    project_id=project_id,
+                    text=task_data.get('text', ''),
+                    completed=task_data.get('completed', False),
+                    start_date=task_data.get('startDate'),
+                    end_date=task_data.get('endDate'),
+                    assignee_name=task_data.get('assignee')
+                )
+                db.session.add(task)
+                db.session.flush()  # Get task ID
+                
+                # Handle subtasks if present
+                if 'subtasks' in task_data and task_data['subtasks']:
+                    for subtask_data in task_data['subtasks']:
+                        subtask = Subtask(
+                            task_id=task.id,
+                            text=subtask_data.get('text', ''),
+                            completed=subtask_data.get('completed', False),
+                            assignee_name=subtask_data.get('assignee')
+                        )
+                        db.session.add(subtask)
+        
         db.session.commit()
-        return jsonify(project.to_dict()), 200
+        return jsonify(project.to_dict(include_tasks=True)), 200
         
     except Exception as e:
         db.session.rollback()
