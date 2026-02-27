@@ -2660,11 +2660,31 @@
                 <!-- Master Timeline for All Projects -->
                 <div style="margin-bottom: 15px; padding: 15px; background: #f7fafc; border-radius: 8px;">
                     <h3 style="margin-bottom: 10px; font-size: 18px; color: #2d3748;">📅 Master Project Timeline (Weekly View)</h3>
-                    <div style="display: flex; gap: 10px; align-items: center;">
-                        <label style="font-weight: 600; color: #4a5568;">Filter by Assignee:</label>
-                        <select id="timelineAssigneeFilter" onchange="renderMasterTimeline()" style="padding: 8px 12px; border: 2px solid #e2e8f0; border-radius: 8px; background: white; font-size: 14px; cursor: pointer;">
-                            <option value="all">All Assignees</option>
-                        </select>
+                    <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <label style="font-weight: 600; color: #4a5568;">Filter by Assignee:</label>
+                            <select id="timelineAssigneeFilter" onchange="renderMasterTimeline()" style="padding: 8px 12px; border: 2px solid #e2e8f0; border-radius: 8px; background: white; font-size: 14px; cursor: pointer;">
+                                <option value="all">All Assignees</option>
+                            </select>
+                        </div>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <label style="font-weight: 600; color: #4a5568;">Completed in Month:</label>
+                            <select id="timelineCompletedMonthFilter" onchange="renderMasterTimeline()" style="padding: 8px 12px; border: 2px solid #e2e8f0; border-radius: 8px; background: white; font-size: 14px; cursor: pointer;">
+                                <option value="all">All Months</option>
+                                <option value="0">January</option>
+                                <option value="1">February</option>
+                                <option value="2">March</option>
+                                <option value="3">April</option>
+                                <option value="4">May</option>
+                                <option value="5">June</option>
+                                <option value="6">July</option>
+                                <option value="7">August</option>
+                                <option value="8">September</option>
+                                <option value="9">October</option>
+                                <option value="10">November</option>
+                                <option value="11">December</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
                 <div id="masterTimeline"></div>
@@ -3200,13 +3220,23 @@
                         projects[idx].applications = updated.applications || [];
                     }
                 } else {
-                    const error = await response.text();
-                    console.error('Failed to update project:', error);
-                    throw new Error('Failed to update project');
+                    let errorMessage = 'Failed to update project';
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.error || errorMessage;
+                    } catch {
+                        errorMessage = await response.text();
+                    }
+                    console.error('Failed to update project:', {
+                        status: response.status,
+                        statusText: response.statusText,
+                        error: errorMessage
+                    });
+                    throw new Error(`Failed to update project: ${errorMessage}`);
                 }
             } catch (err) {
                 console.error('Error updating project:', err);
-                alert('Failed to update project. Please try again.');
+                alert(`Failed to update project: ${err.message || 'Please try again.'}`);
             }
         }
 
@@ -5197,10 +5227,17 @@
             }
         }
 
-        function updateProjectStatus(projectIndex, newStatus) {
-            projects[projectIndex].status = newStatus;
+        async function updateProjectStatus(projectIndex, newStatus) {
+            const project = projects[projectIndex];
+            project.status = newStatus;
             renderProjects();
-            persistData();
+            
+            // Update to database if project has ID
+            if (project.id) {
+                await updateProjectToDatabase(project);
+            } else {
+                await persistData();
+            }
         }
         
         async function updateProjectDeliveryDate(projectIndex, newDate) {
@@ -5891,6 +5928,10 @@
             const assigneeFilter = document.getElementById('timelineAssigneeFilter');
             const selectedAssignee = assigneeFilter ? assigneeFilter.value : 'all';
             
+            // Get selected completed month filter
+            const completedMonthFilter = document.getElementById('timelineCompletedMonthFilter');
+            const selectedMonth = completedMonthFilter ? completedMonthFilter.value : 'all';
+            
             // Collect all unique assignees and update filter dropdown
             const allAssignees = new Set();
             projects.forEach(project => {
@@ -6007,6 +6048,35 @@
                 });
             });
             
+            // Filter projects by completed status and month if filter is active
+            if (selectedMonth !== 'all') {
+                Object.keys(hierarchy).forEach(channel => {
+                    Object.keys(hierarchy[channel]).forEach(app => {
+                        Object.keys(hierarchy[channel][app]).forEach(proj => {
+                            const projectData = hierarchy[channel][app][proj].projectData;
+                            
+                            // When month filter is active, only show completed projects from that month
+                            // Hide all other projects (including non-completed ones)
+                            if (projectData.status !== 'completed') {
+                                // Remove non-completed projects
+                                delete hierarchy[channel][app][proj];
+                            } else if (!projectData.deliveryDate) {
+                                // Remove completed projects without delivery date
+                                delete hierarchy[channel][app][proj];
+                            } else {
+                                // Check if delivery date month matches selected month
+                                const deliveryDate = new Date(projectData.deliveryDate);
+                                const deliveryMonth = deliveryDate.getMonth();
+                                if (deliveryMonth !== parseInt(selectedMonth)) {
+                                    // Remove completed projects from other months
+                                    delete hierarchy[channel][app][proj];
+                                }
+                            }
+                        });
+                    });
+                });
+            }
+            
             // Clean up hierarchy: remove projects with no tasks, apps with no projects, channels with no apps
             Object.keys(hierarchy).forEach(channel => {
                 Object.keys(hierarchy[channel]).forEach(app => {
@@ -6040,9 +6110,18 @@
             });
             
             if (!hasData) {
-                const filterMessage = selectedAssignee !== 'all' 
-                    ? `No tasks found for assignee: ${selectedAssignee}. Try selecting a different assignee.`
-                    : 'No tasks to display. Add tasks to projects to see the master timeline.';
+                let filterMessage = 'No tasks to display. Add tasks to projects to see the master timeline.';
+                
+                if (selectedMonth !== 'all' && selectedAssignee !== 'all') {
+                    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                    filterMessage = `No completed projects found for ${monthNames[parseInt(selectedMonth)]} with assignee: ${selectedAssignee}.`;
+                } else if (selectedMonth !== 'all') {
+                    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                    filterMessage = `No completed projects found for ${monthNames[parseInt(selectedMonth)]}.`;
+                } else if (selectedAssignee !== 'all') {
+                    filterMessage = `No tasks found for assignee: ${selectedAssignee}. Try selecting a different assignee.`;
+                }
+                
                 masterTimeline.innerHTML = `
                     <div class="master-timeline">
                         <div style="text-align: center; padding: 40px; color: #a0aec0;">

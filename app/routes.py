@@ -762,12 +762,29 @@ def update_project(project_id):
             
             # Add new tasks from data
             for task_data in data['tasks']:
+                # Parse dates if provided
+                from datetime import datetime as dt
+                start_date = None
+                end_date = None
+                
+                if task_data.get('startDate'):
+                    try:
+                        start_date = dt.fromisoformat(task_data['startDate'].replace('Z', '+00:00')).date()
+                    except:
+                        start_date = None
+                
+                if task_data.get('endDate'):
+                    try:
+                        end_date = dt.fromisoformat(task_data['endDate'].replace('Z', '+00:00')).date()
+                    except:
+                        end_date = None
+                
                 task = Task(
                     project_id=project_id,
                     text=task_data.get('text', ''),
                     completed=task_data.get('completed', False),
-                    start_date=task_data.get('startDate'),
-                    end_date=task_data.get('endDate'),
+                    start_date=start_date,
+                    end_date=end_date,
                     assignee_name=task_data.get('assignee')
                 )
                 db.session.add(task)
