@@ -2533,8 +2533,12 @@
                 <button class="tab" onclick="switchTab('team')">Team Overview</button>
                 <button class="tab" onclick="switchTab('projects')">Projects</button>
                 <button class="tab active" onclick="switchTab('dashboard')">📊 Dashboard</button>
-                <button class="tab" onclick="switchTab('availability')">Task Monitor</button>
-                <button class="tab" onclick="switchTab('calendar')">📅 Calendar</button>
+                <button class="tab" id="taskMonitorTab" onclick="switchTab('availability')" style="display: none;">Task Monitor</button>
+                <button class="tab" id="calendarTab" onclick="switchTab('calendar')" style="display: none;">📅 Calendar</button>
+            </div>
+            <div style="margin-top: 15px; padding: 10px; background: #f7fafc; border-radius: 8px; display: inline-flex; align-items: center; gap: 8px;">
+                <input type="checkbox" id="showAdvancedMenus" onchange="toggleAdvancedMenus()" style="width: 18px; height: 18px; cursor: pointer;">
+                <label for="showAdvancedMenus" style="cursor: pointer; font-size: 14px; font-weight: 500; color: #4a5568;">Show Advanced Menus (Task Monitor, Calendar)</label>
             </div>
         </header>
 
@@ -3026,6 +3030,33 @@
                 renderCalendarView();
             } else if (tabName === 'dashboard') {
                 renderDashboard();
+            }
+        }
+        
+        function toggleAdvancedMenus() {
+            const checkbox = document.getElementById('showAdvancedMenus');
+            const taskMonitorTab = document.getElementById('taskMonitorTab');
+            const calendarTab = document.getElementById('calendarTab');
+            const taskMonitorContent = document.getElementById('availability');
+            const calendarContent = document.getElementById('calendar');
+            
+            if (checkbox.checked) {
+                taskMonitorTab.style.display = '';
+                calendarTab.style.display = '';
+            } else {
+                taskMonitorTab.style.display = 'none';
+                calendarTab.style.display = 'none';
+                
+                // If currently viewing Task Monitor or Calendar, switch to Dashboard
+                if (taskMonitorContent.classList.contains('active') || calendarContent.classList.contains('active')) {
+                    // Switch to dashboard
+                    document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                    
+                    const dashboardTab = document.querySelector('.tab[onclick*="dashboard"]');
+                    if (dashboardTab) dashboardTab.classList.add('active');
+                    document.getElementById('dashboard').classList.add('active');
+                }
             }
         }
 
