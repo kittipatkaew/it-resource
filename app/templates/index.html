@@ -2979,6 +2979,23 @@
             }
         }
 
+        // UUID Generation for Better IDs
+        function generateUUID() {
+            // Generate RFC4122 version 4 UUID
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0;
+                const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        // Generate a short readable ID (alternative to UUID if needed)
+        function generateShortID() {
+            const timestamp = Date.now().toString(36);
+            const randomStr = Math.random().toString(36).substring(2, 7);
+            return `${timestamp}-${randomStr}`;
+        }
+
         let projects = [
             {
                 name: "E-commerce Platform",
@@ -3175,8 +3192,9 @@
 
         // Helper function to update project to database
         async function updateProjectToDatabase(project) {
-            if (!project.id) {
-                console.warn('Project has no ID, cannot update to database');
+            if (!project.id || typeof project.id !== 'number' || project.id <= 0) {
+                console.warn('Project has no valid ID, skipping database update:', project.id);
+                await persistData(); // Persist locally instead
                 return;
             }
             
@@ -3230,8 +3248,19 @@
                     console.error('Failed to update project:', {
                         status: response.status,
                         statusText: response.statusText,
-                        error: errorMessage
+                        error: errorMessage,
+                        projectId: project.id,
+                        projectName: project.name
                     });
+                    
+                    // If 404, the project doesn't exist in database - remove the invalid ID
+                    if (response.status === 404) {
+                        console.warn(`Project ID ${project.id} not found in database. Removing ID and saving locally.`);
+                        delete project.id;
+                        await persistData();
+                        return; // Don't throw error, just persist locally
+                    }
+                    
                     throw new Error(`Failed to update project: ${errorMessage}`);
                 }
             } catch (err) {
@@ -3339,14 +3368,30 @@
                     if (response.ok) {
                         console.log(`✓ Channel "${channel}" added to project`);
                     } else {
-                        throw new Error('Failed to update project');
+                        let errorMessage = 'Failed to update project';
+                        try {
+                            const errorData = await response.json();
+                            errorMessage = errorData.error || errorMessage;
+                        } catch {
+                            errorMessage = await response.text();
+                        }
+                        
+                        // If 404, the project doesn't exist in database - remove the invalid ID
+                        if (response.status === 404) {
+                            console.warn(`Project ID ${project.id} not found in database. Removing ID and saving locally.`);
+                            delete project.id;
+                            await persistData();
+                            return; // Don't throw error, just persist locally
+                        }
+                        
+                        throw new Error(`Failed to update project: ${errorMessage}`);
                     }
                 } catch (err) {
                     console.error('Failed to add channel:', err);
                     // Revert on error
                     project.channels = project.channels.filter(c => c !== channel);
                     renderProjects();
-                    alert('Failed to add channel. Please try again.');
+                    alert(`Failed to add channel: ${err.message || 'Please try again.'}`);
                 }
             } else {
                 // No ID, just persist locally
@@ -3390,14 +3435,29 @@
                     if (response.ok) {
                         console.log(`✓ Channel "${channel}" removed from project`);
                     } else {
-                        throw new Error('Failed to update project');
+                        let errorMessage = 'Failed to update project';
+                        try {
+                            const errorData = await response.json();
+                            errorMessage = errorData.error || errorMessage;
+                        } catch {
+                            errorMessage = await response.text();
+                        }
+                        
+                        if (response.status === 404) {
+                            console.warn(`Project ID ${project.id} not found in database. Removing ID and saving locally.`);
+                            delete project.id;
+                            await persistData();
+                            return;
+                        }
+                        
+                        throw new Error(`Failed to update project: ${errorMessage}`);
                     }
                 } catch (err) {
                     console.error('Failed to remove channel:', err);
                     // Revert on error
                     project.channels = oldChannels;
                     renderProjects();
-                    alert('Failed to remove channel. Please try again.');
+                    alert(`Failed to remove channel: ${err.message || 'Please try again.'}`);
                 }
             } else {
                 // No ID, just persist locally
@@ -3447,14 +3507,29 @@
                     if (response.ok) {
                         console.log(`✓ Application "${application}" added to project`);
                     } else {
-                        throw new Error('Failed to update project');
+                        let errorMessage = 'Failed to update project';
+                        try {
+                            const errorData = await response.json();
+                            errorMessage = errorData.error || errorMessage;
+                        } catch {
+                            errorMessage = await response.text();
+                        }
+                        
+                        if (response.status === 404) {
+                            console.warn(`Project ID ${project.id} not found in database. Removing ID and saving locally.`);
+                            delete project.id;
+                            await persistData();
+                            return;
+                        }
+                        
+                        throw new Error(`Failed to update project: ${errorMessage}`);
                     }
                 } catch (err) {
                     console.error('Failed to add application:', err);
                     // Revert on error
                     project.applications = project.applications.filter(a => a !== application);
                     renderProjects();
-                    alert('Failed to add application. Please try again.');
+                    alert(`Failed to add application: ${err.message || 'Please try again.'}`);
                 }
             } else {
                 // No ID, just persist locally
@@ -3498,14 +3573,29 @@
                     if (response.ok) {
                         console.log(`✓ Application "${application}" removed from project`);
                     } else {
-                        throw new Error('Failed to update project');
+                        let errorMessage = 'Failed to update project';
+                        try {
+                            const errorData = await response.json();
+                            errorMessage = errorData.error || errorMessage;
+                        } catch {
+                            errorMessage = await response.text();
+                        }
+                        
+                        if (response.status === 404) {
+                            console.warn(`Project ID ${project.id} not found in database. Removing ID and saving locally.`);
+                            delete project.id;
+                            await persistData();
+                            return;
+                        }
+                        
+                        throw new Error(`Failed to update project: ${errorMessage}`);
                     }
                 } catch (err) {
                     console.error('Failed to remove application:', err);
                     // Revert on error
                     project.applications = oldApplications;
                     renderProjects();
-                    alert('Failed to remove application. Please try again.');
+                    alert(`Failed to remove application: ${err.message || 'Please try again.'}`);
                 }
             } else {
                 // No ID, just persist locally
@@ -5277,7 +5367,7 @@
             if (taskText) {
                 const project = projects[projectIndex];
                 const newTask = {
-                    id: Date.now(),
+                    id: generateUUID(),
                     text: taskText,
                     completed: false,
                     assignee: null,
