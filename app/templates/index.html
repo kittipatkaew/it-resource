@@ -2654,6 +2654,15 @@
                 </div>
                 
                 <!-- Master Timeline for All Projects -->
+                <div style="margin-bottom: 15px; padding: 15px; background: #f7fafc; border-radius: 8px;">
+                    <h3 style="margin-bottom: 10px; font-size: 18px; color: #2d3748;">📅 Master Project Timeline (Weekly View)</h3>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <label style="font-weight: 600; color: #4a5568;">Filter by Assignee:</label>
+                        <select id="timelineAssigneeFilter" onchange="renderMasterTimeline()" style="padding: 8px 12px; border: 2px solid #e2e8f0; border-radius: 8px; background: white; font-size: 14px; cursor: pointer;">
+                            <option value="all">All Assignees</option>
+                        </select>
+                    </div>
+                </div>
                 <div id="masterTimeline"></div>
                 
                 <div id="dashboardView"></div>
@@ -5819,6 +5828,36 @@
             const currentYear = new Date().getFullYear();
             const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
             
+            // Get selected assignee filter
+            const assigneeFilter = document.getElementById('timelineAssigneeFilter');
+            const selectedAssignee = assigneeFilter ? assigneeFilter.value : 'all';
+            
+            // Collect all unique assignees and update filter dropdown
+            const allAssignees = new Set();
+            projects.forEach(project => {
+                const tasks = project.tasks || [];
+                tasks.forEach(task => {
+                    if (task.assignee) {
+                        allAssignees.add(task.assignee);
+                    }
+                });
+            });
+            
+            // Update filter dropdown if it exists
+            if (assigneeFilter) {
+                const currentValue = assigneeFilter.value;
+                assigneeFilter.innerHTML = '<option value="all">All Assignees</option>';
+                Array.from(allAssignees).sort().forEach(assignee => {
+                    const option = document.createElement('option');
+                    option.value = assignee;
+                    option.textContent = assignee;
+                    if (assignee === currentValue) {
+                        option.selected = true;
+                    }
+                    assigneeFilter.appendChild(option);
+                });
+            }
+            
             // Helper function to get ISO week number
             function getWeekNumber(date) {
                 const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
@@ -5900,7 +5939,10 @@
                         // Include ALL tasks, regardless of whether they have dates or not
                         // This shows: completed, in-progress, overdue, scheduled, and unscheduled tasks
                         tasks.forEach(task => {
-                            hierarchy[channel][app][project.name].tasks.push(task);
+                            // Apply assignee filter
+                            if (selectedAssignee === 'all' || task.assignee === selectedAssignee) {
+                                hierarchy[channel][app][project.name].tasks.push(task);
+                            }
                         });
                     });
                 });
@@ -5919,10 +5961,13 @@
             });
             
             if (!hasData) {
+                const filterMessage = selectedAssignee !== 'all' 
+                    ? `No tasks found for assignee: ${selectedAssignee}. Try selecting a different assignee.`
+                    : 'No tasks to display. Add tasks to projects to see the master timeline.';
                 masterTimeline.innerHTML = `
                     <div class="master-timeline">
                         <div style="text-align: center; padding: 40px; color: #a0aec0;">
-                            📅 No tasks to display. Add tasks to projects to see the master timeline.
+                            📅 ${filterMessage}
                         </div>
                     </div>
                 `;
