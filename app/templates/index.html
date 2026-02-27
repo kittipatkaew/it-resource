@@ -2526,23 +2526,20 @@
             <h1>🚀 IT Resource Manager</h1>
             <p class="subtitle">Manage your development team, projects, and resource allocation</p>
             <div class="tabs">
-                <button class="tab active" onclick="switchTab('team')">Team Overview</button>
+                <button class="tab" onclick="switchTab('team')">Team Overview</button>
                 <button class="tab" onclick="switchTab('projects')">Projects</button>
-                <button class="tab" onclick="switchTab('dashboard')">📊 Dashboard</button>
+                <button class="tab active" onclick="switchTab('dashboard')">📊 Dashboard</button>
                 <button class="tab" onclick="switchTab('availability')">Task Monitor</button>
                 <button class="tab" onclick="switchTab('calendar')">📅 Calendar</button>
             </div>
             <div class="export-import-container" style="margin-top: 15px;">
-                <button class="export-btn" onclick="exportData()">📥 Export Data</button>
-                <button class="import-btn" onclick="document.getElementById('importFile').click()">📤 Import Data</button>
                 <button class="export-btn" onclick="showVersionInfo()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">ℹ️ Version Info</button>
-                <input type="file" id="importFile" accept=".json" onchange="importData(event)">
             </div>
         </header>
 
         <div class="content">
             <!-- Team Overview Tab -->
-            <div id="team" class="tab-content active">
+            <div id="team" class="tab-content">
                 <button class="add-btn" onclick="addTeamMember()">+ Add Team Member</button>
                 <div class="team-grid" id="teamGrid"></div>
             </div>
@@ -2637,7 +2634,7 @@
             </div>
 
             <!-- Dashboard View -->
-            <div id="dashboard" class="tab-content">
+            <div id="dashboard" class="tab-content active">
                 <div style="margin-bottom: 20px;">
                     <h2 style="margin-bottom: 10px;">📊 Project Dashboard</h2>
                     <p style="color: #666; margin-bottom: 20px;">Channel → Application → Project → Task hierarchy</p>
@@ -2936,6 +2933,9 @@
                     }
                     if (typeof renderTaskOverview === 'function') {
                         renderTaskOverview();
+                    }
+                    if (typeof renderDashboard === 'function') {
+                        renderDashboard();
                     }
                 } else {
                     console.warn('Failed to load data from server, using defaults');
