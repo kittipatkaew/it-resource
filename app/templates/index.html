@@ -5948,6 +5948,26 @@
                 });
             });
             
+            // Clean up hierarchy: remove projects with no tasks, apps with no projects, channels with no apps
+            Object.keys(hierarchy).forEach(channel => {
+                Object.keys(hierarchy[channel]).forEach(app => {
+                    Object.keys(hierarchy[channel][app]).forEach(proj => {
+                        // Remove projects with no tasks
+                        if (hierarchy[channel][app][proj].tasks.length === 0) {
+                            delete hierarchy[channel][app][proj];
+                        }
+                    });
+                    // Remove apps with no projects
+                    if (Object.keys(hierarchy[channel][app]).length === 0) {
+                        delete hierarchy[channel][app];
+                    }
+                });
+                // Remove channels with no apps
+                if (Object.keys(hierarchy[channel]).length === 0) {
+                    delete hierarchy[channel];
+                }
+            });
+            
             // Check if we have any data
             let hasData = false;
             Object.keys(hierarchy).forEach(channel => {
