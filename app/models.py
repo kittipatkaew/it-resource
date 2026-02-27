@@ -45,6 +45,7 @@ class Project(db.Model):
     meeting_minutes = db.Column(db.Text)
     channels = db.Column(ARRAY(db.String), default=[], nullable=True)  # Channels field
     applications = db.Column(ARRAY(db.String), default=[], nullable=True)  # New: applications field
+    delivery_date = db.Column(db.Date, nullable=True)  # Delivery date field
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -64,6 +65,7 @@ class Project(db.Model):
             'meetingMinutes': self.meeting_minutes,
             'channels': self.channels or [],  # Include channels in response
             'applications': self.applications or [],  # New: include applications in response
+            'deliveryDate': self.delivery_date.isoformat() if self.delivery_date else None,  # Include delivery date
             'images': [img.to_dict() for img in self.images],
             'links': [link.to_dict() for link in self.links],
             'team': [pt.member.name for pt in self.project_teams],

@@ -693,6 +693,15 @@ def create_project():
         if Project.query.filter_by(name=data['name']).first():
             return jsonify({'error': 'Project with this name already exists'}), 409
         
+        # Parse delivery date if provided
+        delivery_date = None
+        if data.get('deliveryDate'):
+            try:
+                from datetime import datetime as dt
+                delivery_date = dt.fromisoformat(data['deliveryDate'].replace('Z', '+00:00')).date()
+            except:
+                pass
+        
         project = Project(
             name=data['name'],
             description=data.get('description', ''),
@@ -700,7 +709,8 @@ def create_project():
             starred=data.get('starred', False),
             meeting_minutes=data.get('meetingMinutes', ''),
             channels=data.get('channels', []),  # Support channels on creation
-            applications=data.get('applications', [])  # New: support applications on creation
+            applications=data.get('applications', []),  # New: support applications on creation
+            delivery_date=delivery_date  # New: support delivery date on creation
         )
         
         db.session.add(project)
@@ -734,6 +744,16 @@ def update_project(project_id):
             project.channels = data['channels']  # Handle channels
         if 'applications' in data:
             project.applications = data['applications']  # New: handle applications
+        if 'deliveryDate' in data:
+            # Parse delivery date
+            if data['deliveryDate']:
+                try:
+                    from datetime import datetime as dt
+                    project.delivery_date = dt.fromisoformat(data['deliveryDate'].replace('Z', '+00:00')).date()
+                except:
+                    project.delivery_date = None
+            else:
+                project.delivery_date = None
         
         # Handle tasks if provided (full replacement)
         if 'tasks' in data:

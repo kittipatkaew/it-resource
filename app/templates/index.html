@@ -3180,6 +3180,7 @@
                         meetingMinutes: project.meetingMinutes || project.meeting_minutes || '',
                         channels: project.channels || [],
                         applications: project.applications || [],
+                        deliveryDate: project.deliveryDate || null,
                         tasks: project.tasks || []
                     })
                 });
@@ -3533,21 +3534,30 @@
                 const pIndex = projects.indexOf(project);
                 return `
                 <div class="project-card" data-project="${project.name}" data-index="${pIndex}">
-                    <button class="star-btn ${project.starred ? 'starred' : ''}" onclick="toggleStar(${pIndex})" title="${project.starred ? 'Unmark urgent' : 'Mark urgent'}">${project.starred ? '★' : '☆'}</button>
                     <button class="edit-project-btn" onclick="editProject(${pIndex})" title="Edit project">✎</button>
                     <button class="delete-project-btn" onclick="deleteProject(${pIndex})" title="Delete project">×</button>
                     
                     <div class="project-header">
                         <div class="project-title">${project.name}</div>
-                        <div style="position: relative;">
-                            <div class="project-status status-${project.status}" onclick="toggleStatusDropdown(${pIndex})" title="Click to change status">
-                                ${project.status.charAt(0).toUpperCase() + project.status.slice(1).replace('-', ' ')}
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <div style="position: relative;">
+                                <div class="project-status status-${project.status}" onclick="toggleStatusDropdown(${pIndex})" title="Click to change status">
+                                    ${project.status.charAt(0).toUpperCase() + project.status.slice(1).replace('-', ' ')}
+                                </div>
+                                <div id="statusDropdown${pIndex}" class="status-dropdown" style="display: none;">
+                                    <div class="status-option" onclick="updateProjectStatus(${pIndex}, 'planning')">📋 Planning</div>
+                                    <div class="status-option" onclick="updateProjectStatus(${pIndex}, 'active')">🚀 Active</div>
+                                    <div class="status-option" onclick="updateProjectStatus(${pIndex}, 'on-hold')">⏸️ On Hold</div>
+                                    <div class="status-option" onclick="updateProjectStatus(${pIndex}, 'completed')">✅ Completed</div>
+                                </div>
                             </div>
-                            <div id="statusDropdown${pIndex}" class="status-dropdown" style="display: none;">
-                                <div class="status-option" onclick="updateProjectStatus(${pIndex}, 'planning')">📋 Planning</div>
-                                <div class="status-option" onclick="updateProjectStatus(${pIndex}, 'active')">🚀 Active</div>
-                                <div class="status-option" onclick="updateProjectStatus(${pIndex}, 'on-hold')">⏸️ On Hold</div>
-                                <div class="status-option" onclick="updateProjectStatus(${pIndex}, 'completed')">✅ Completed</div>
+                            <div style="display: flex; align-items: center; gap: 5px;">
+                                <label style="font-size: 12px; color: #666; white-space: nowrap;">📅 Delivery:</label>
+                                <input type="date" 
+                                       value="${project.deliveryDate || ''}" 
+                                       onchange="updateProjectDeliveryDate(${pIndex}, this.value)"
+                                       style="padding: 4px 8px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 12px; cursor: pointer;"
+                                       title="Set delivery date">
                             </div>
                         </div>
                     </div>
@@ -3576,6 +3586,11 @@
                         `}
                     </div>
                     <input type="file" id="projectImageUpload${pIndex}" accept="image/*" multiple style="display: none;" onchange="handleProjectImageUpload(event, ${pIndex})">
+                    
+                    <div style="text-align: center; margin: 10px 0;">
+                        <button class="star-btn ${project.starred ? 'starred' : ''}" onclick="toggleStar(${pIndex})" title="${project.starred ? 'Unmark urgent' : 'Mark urgent'}" style="position: static; margin: 0 auto;">${project.starred ? '★' : '☆'}</button>
+                    </div>
+                    
                     <div style="color: #666; font-size: 14px; margin-bottom: 15px;">
                         ${project.description}
                     </div>
@@ -5186,6 +5201,19 @@
             projects[projectIndex].status = newStatus;
             renderProjects();
             persistData();
+        }
+        
+        async function updateProjectDeliveryDate(projectIndex, newDate) {
+            const project = projects[projectIndex];
+            project.deliveryDate = newDate || null;
+            renderProjects();
+            
+            // Update to database if project has ID
+            if (project.id) {
+                await updateProjectToDatabase(project);
+            } else {
+                await persistData();
+            }
         }
 
         // Task Management
