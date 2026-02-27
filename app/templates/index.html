@@ -6231,10 +6231,24 @@ End: ${endDate ? endDate.toLocaleDateString() : '—'}">
                         // LEVEL 3: Project Row
                         rowHtml += `
                             <div class="master-timeline-row-header master-timeline-project" style="padding-left: 40px;">
-                                <span class="clickable-project-name" onclick="navigateToProject('${projectName.replace(/'/g, "\\'")}')"
-                                      title="Click to view project in Projects tab">
-                                    📁 ${projectName} ${projectData.starred ? '⭐' : ''}
-                                </span>
+                                <div>
+                                    <div class="clickable-project-name" onclick="navigateToProject('${projectName.replace(/'/g, "\\'")}')"
+                                          title="Click to view project in Projects tab">
+                                        📁 ${projectName} ${projectData.starred ? '⭐' : ''}
+                                    </div>
+                                    <div style="margin-top: 3px; font-size: 11px; display: flex; gap: 10px; align-items: center;">
+                                        <span class="project-status status-${projectData.status}" style="font-size: 10px; padding: 2px 6px;">
+                                            ${projectData.status}
+                                        </span>
+                                        ${projectData.deliveryDate ? `<span style="color: #666;">📅 ${(() => {
+                                            const d = new Date(projectData.deliveryDate);
+                                            const day = String(d.getDate()).padStart(2, '0');
+                                            const month = String(d.getMonth() + 1).padStart(2, '0');
+                                            const year = d.getFullYear();
+                                            return day + '/' + month + '/' + year;
+                                        })()}</span>` : ''}
+                                    </div>
+                                </div>
                             </div>
                             ${renderTimelineBar({name: projectName, completed: false}, projectStart, projectEnd, true)}
                         `;
@@ -6386,15 +6400,26 @@ End: ${endDate ? endDate.toLocaleDateString() : '—'}">
                 html += `
                     <div class="dashboard-project">
                         <div class="dashboard-project-header" onclick="toggleDashboardSection('project-${project.name}')">
-                            <div class="dashboard-project-title">
-                                <span class="dashboard-expand-icon" id="icon-project-${project.name}">▶</span>
-                                📁 ${project.name}
-                                ${project.starred ? '⭐' : ''}
+                            <div style="flex: 1;">
+                                <div class="dashboard-project-title">
+                                    <span class="dashboard-expand-icon" id="icon-project-${project.name}">▶</span>
+                                    📁 ${project.name}
+                                    ${project.starred ? '⭐' : ''}
+                                </div>
+                                <div style="margin-left: 20px; margin-top: 4px; display: flex; gap: 12px; align-items: center; font-size: 12px;">
+                                    <span class="project-status status-${project.status}" style="font-size: 11px; padding: 3px 8px;">
+                                        ${project.status}
+                                    </span>
+                                    ${project.deliveryDate ? `<span style="color: #666;">📅 Delivery: ${(() => {
+                                        const d = new Date(project.deliveryDate);
+                                        const day = String(d.getDate()).padStart(2, '0');
+                                        const month = String(d.getMonth() + 1).padStart(2, '0');
+                                        const year = d.getFullYear();
+                                        return day + '/' + month + '/' + year;
+                                    })()}</span>` : ''}
+                                </div>
                             </div>
                             <div style="display: flex; gap: 10px; align-items: center;">
-                                <span class="project-status status-${project.status}" style="font-size: 11px; padding: 3px 8px;">
-                                    ${project.status}
-                                </span>
                                 <span class="dashboard-count">${completedTasks}/${tasks.length} tasks</span>
                             </div>
                         </div>
