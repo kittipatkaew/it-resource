@@ -2704,7 +2704,25 @@
                     <h3 style="margin-bottom: 10px; font-size: 18px; color: #2d3748;">📅 Master Project Timeline (Weekly View)</h3>
                     <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
                         <div style="display: flex; gap: 10px; align-items: center;">
-                            <label style="font-weight: 600; color: #4a5568;">Filter by Assignee:</label>
+                            <label style="font-weight: 600; color: #4a5568;">Channel:</label>
+                            <select id="timelineChannelFilter" onchange="renderMasterTimeline()" style="padding: 8px 12px; border: 2px solid #e2e8f0; border-radius: 8px; background: white; font-size: 14px; cursor: pointer;">
+                                <option value="all">All Channels</option>
+                            </select>
+                        </div>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <label style="font-weight: 600; color: #4a5568;">Application:</label>
+                            <select id="timelineApplicationFilter" onchange="renderMasterTimeline()" style="padding: 8px 12px; border: 2px solid #e2e8f0; border-radius: 8px; background: white; font-size: 14px; cursor: pointer;">
+                                <option value="all">All Applications</option>
+                            </select>
+                        </div>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <label style="font-weight: 600; color: #4a5568;">Project:</label>
+                            <select id="timelineProjectFilter" onchange="renderMasterTimeline()" style="padding: 8px 12px; border: 2px solid #e2e8f0; border-radius: 8px; background: white; font-size: 14px; cursor: pointer;">
+                                <option value="all">All Projects</option>
+                            </select>
+                        </div>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <label style="font-weight: 600; color: #4a5568;">Assignee:</label>
                             <select id="timelineAssigneeFilter" onchange="renderMasterTimeline()" style="padding: 8px 12px; border: 2px solid #e2e8f0; border-radius: 8px; background: white; font-size: 14px; cursor: pointer;">
                                 <option value="all">All Assignees</option>
                             </select>
@@ -6686,17 +6704,47 @@
             const currentYear = new Date().getFullYear();
             const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
             
-            // Get selected assignee filter
+            // Get all filter values
+            const channelFilter = document.getElementById('timelineChannelFilter');
+            const selectedChannel = channelFilter ? channelFilter.value : 'all';
+            
+            const applicationFilter = document.getElementById('timelineApplicationFilter');
+            const selectedApplication = applicationFilter ? applicationFilter.value : 'all';
+            
+            const projectFilter = document.getElementById('timelineProjectFilter');
+            const selectedProject = projectFilter ? projectFilter.value : 'all';
+            
             const assigneeFilter = document.getElementById('timelineAssigneeFilter');
             const selectedAssignee = assigneeFilter ? assigneeFilter.value : 'all';
             
-            // Get selected completed month filter
             const completedMonthFilter = document.getElementById('timelineCompletedMonthFilter');
             const selectedMonth = completedMonthFilter ? completedMonthFilter.value : 'all';
             
-            // Collect all unique assignees and update filter dropdown
+            // Collect all unique values for filter dropdowns
+            const allChannels = new Set();
+            const allApplications = new Set();
+            const allProjects = new Set();
             const allAssignees = new Set();
+            
             projects.forEach(project => {
+                // Collect channels
+                if (project.channels && project.channels.length > 0) {
+                    project.channels.forEach(ch => allChannels.add(ch));
+                } else {
+                    allChannels.add('No Channel');
+                }
+                
+                // Collect applications
+                if (project.applications && project.applications.length > 0) {
+                    project.applications.forEach(app => allApplications.add(app));
+                } else {
+                    allApplications.add('No Application');
+                }
+                
+                // Collect project names
+                allProjects.add(project.name);
+                
+                // Collect assignees
                 const tasks = project.tasks || [];
                 tasks.forEach(task => {
                     if (task.assignee) {
@@ -6705,7 +6753,52 @@
                 });
             });
             
-            // Update filter dropdown if it exists
+            // Update Channel filter dropdown
+            if (channelFilter) {
+                const currentValue = channelFilter.value;
+                channelFilter.innerHTML = '<option value="all">All Channels</option>';
+                Array.from(allChannels).sort().forEach(channel => {
+                    const option = document.createElement('option');
+                    option.value = channel;
+                    option.textContent = channel;
+                    if (channel === currentValue) {
+                        option.selected = true;
+                    }
+                    channelFilter.appendChild(option);
+                });
+            }
+            
+            // Update Application filter dropdown
+            if (applicationFilter) {
+                const currentValue = applicationFilter.value;
+                applicationFilter.innerHTML = '<option value="all">All Applications</option>';
+                Array.from(allApplications).sort().forEach(app => {
+                    const option = document.createElement('option');
+                    option.value = app;
+                    option.textContent = app;
+                    if (app === currentValue) {
+                        option.selected = true;
+                    }
+                    applicationFilter.appendChild(option);
+                });
+            }
+            
+            // Update Project filter dropdown
+            if (projectFilter) {
+                const currentValue = projectFilter.value;
+                projectFilter.innerHTML = '<option value="all">All Projects</option>';
+                Array.from(allProjects).sort().forEach(proj => {
+                    const option = document.createElement('option');
+                    option.value = proj;
+                    option.textContent = proj;
+                    if (proj === currentValue) {
+                        option.selected = true;
+                    }
+                    projectFilter.appendChild(option);
+                });
+            }
+            
+            // Update Assignee filter dropdown
             if (assigneeFilter) {
                 const currentValue = assigneeFilter.value;
                 assigneeFilter.innerHTML = '<option value="all">All Assignees</option>';
@@ -6777,15 +6870,30 @@
             const hierarchy = {};
             
             projects.forEach(project => {
+                // Apply project filter first
+                if (selectedProject !== 'all' && project.name !== selectedProject) {
+                    return; // Skip this project
+                }
+                
                 const channels = project.channels && project.channels.length > 0 ? project.channels : ['No Channel'];
                 const applications = project.applications && project.applications.length > 0 ? project.applications : ['No Application'];
                 
                 channels.forEach(channel => {
+                    // Apply channel filter
+                    if (selectedChannel !== 'all' && channel !== selectedChannel) {
+                        return; // Skip this channel
+                    }
+                    
                     if (!hierarchy[channel]) {
                         hierarchy[channel] = {};
                     }
                     
                     applications.forEach(app => {
+                        // Apply application filter
+                        if (selectedApplication !== 'all' && app !== selectedApplication) {
+                            return; // Skip this application
+                        }
+                        
                         if (!hierarchy[channel][app]) {
                             hierarchy[channel][app] = {};
                         }
@@ -6874,14 +6982,19 @@
             if (!hasData) {
                 let filterMessage = 'No tasks to display. Add tasks to projects to see the master timeline.';
                 
-                if (selectedMonth !== 'all' && selectedAssignee !== 'all') {
+                // Build filter message based on active filters
+                const activeFilters = [];
+                if (selectedChannel !== 'all') activeFilters.push(`Channel: ${selectedChannel}`);
+                if (selectedApplication !== 'all') activeFilters.push(`Application: ${selectedApplication}`);
+                if (selectedProject !== 'all') activeFilters.push(`Project: ${selectedProject}`);
+                if (selectedAssignee !== 'all') activeFilters.push(`Assignee: ${selectedAssignee}`);
+                if (selectedMonth !== 'all') {
                     const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-                    filterMessage = `No completed projects found for ${monthNames[parseInt(selectedMonth)]} with assignee: ${selectedAssignee}.`;
-                } else if (selectedMonth !== 'all') {
-                    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-                    filterMessage = `No completed projects found for ${monthNames[parseInt(selectedMonth)]}.`;
-                } else if (selectedAssignee !== 'all') {
-                    filterMessage = `No tasks found for assignee: ${selectedAssignee}. Try selecting a different assignee.`;
+                    activeFilters.push(`Completed in: ${monthNames[parseInt(selectedMonth)]}`);
+                }
+                
+                if (activeFilters.length > 0) {
+                    filterMessage = `No data found with current filters: ${activeFilters.join(', ')}.`;
                 }
                 
                 masterTimeline.innerHTML = `
