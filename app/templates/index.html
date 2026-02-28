@@ -2865,10 +2865,10 @@
                 <input type="date" id="editTaskEndDate">
             </div>
             <div class="form-group">
-                <label>Assign To</label>
-                <select id="editTaskAssignee">
-                    <option value="">Unassigned</option>
-                </select>
+                <label>Assign To (Multiple Selection)</label>
+                <div id="editTaskAssignees" style="max-height: 200px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 4px; padding: 10px; background: white;">
+                    <!-- Assignee checkboxes will be populated here -->
+                </div>
             </div>
             <div class="modal-actions">
                 <button class="btn btn-primary" onclick="saveTaskEdit()">Save Changes</button>
@@ -4262,10 +4262,17 @@
                                         </div>
                                         ${subtasks.length === 0 ? `<button class="add-subtask-btn" onclick="toggleSubtaskInput(${pIndex}, ${tIndex})">+ Add Subtask</button>` : `<button class="add-subtask-btn" onclick="toggleSubtaskInput(${pIndex}, ${tIndex})">+ Add another</button>`}
                                     </div>
-                                    ${task.assignee 
-                                        ? `<span class="task-assignee" onclick="showAssigneeDropdown(event, ${pIndex}, ${tIndex})">${task.assignee.split(' ')[0]}</span>`
-                                        : `<span class="task-assignee-btn" onclick="showAssigneeDropdown(event, ${pIndex}, ${tIndex})">Assign</span>`
-                                    }
+                                    ${(() => {
+                                        const assignees = task.assignees && task.assignees.length > 0 ? task.assignees : 
+                                                         (task.assignee ? [task.assignee] : []);
+                                        if (assignees.length === 0) {
+                                            return `<span class="task-assignee-btn" onclick="showAssigneeDropdown(event, ${pIndex}, ${tIndex})">Assign</span>`;
+                                        } else if (assignees.length === 1) {
+                                            return `<span class="task-assignee" onclick="showAssigneeDropdown(event, ${pIndex}, ${tIndex})" title="${assignees[0]}">${assignees[0].split(' ')[0]}</span>`;
+                                        } else {
+                                            return `<span class="task-assignee" onclick="showAssigneeDropdown(event, ${pIndex}, ${tIndex})" title="${assignees.join(', ')}">${assignees[0].split(' ')[0]} +${assignees.length - 1}</span>`;
+                                        }
+                                    })()}
                                     <span class="task-edit" onclick="editTask(${pIndex}, ${tIndex})" title="Edit task">✎</span>
                                     <span class="task-delete" onclick="deleteTask(${pIndex}, ${tIndex})">×</span>
                                 </div>
@@ -5011,6 +5018,11 @@
                                 dayTasks.map(task => {
                                     const endTaskDate = new Date(task.endDate);
                                     const isOverdue = endTaskDate < new Date() && !task.completed;
+                                    const assignees = task.assignees && task.assignees.length > 0 ? task.assignees : 
+                                                     (task.assignee ? [task.assignee] : []);
+                                    const assigneeDisplay = assignees.length === 0 ? '' :
+                                                          assignees.length === 1 ? `<span class="calendar-task-assignee">👤 ${assignees[0].split(' ')[0]}</span>` :
+                                                          `<span class="calendar-task-assignee" title="${assignees.join(', ')}">👤 ${assignees[0].split(' ')[0]} +${assignees.length - 1}</span>`;
                                     return `
                                         <div class="calendar-task-item ${task.completed ? 'completed' : ''} ${isOverdue ? 'overdue' : ''}" 
                                              onclick="goToProjectFromCalendar(${task.projectIndex})"
@@ -5019,7 +5031,7 @@
                                             <div class="calendar-task-text">${task.text}</div>
                                             <div class="calendar-task-meta">
                                                 <span class="calendar-task-project">📁 ${task.projectName}</span>
-                                                ${task.assignee ? `<span class="calendar-task-assignee">👤 ${task.assignee.split(' ')[0]}</span>` : ''}
+                                                ${assigneeDisplay}
                                             </div>
                                         </div>
                                     `;
@@ -5181,8 +5193,16 @@
                         // Update task assignees
                         if (project.tasks) {
                             project.tasks.forEach(task => {
+                                // Update old single assignee format
                                 if (task.assignee === oldName) {
                                     task.assignee = name;
+                                }
+                                // Update new multiple assignees format
+                                if (task.assignees && Array.isArray(task.assignees)) {
+                                    const index = task.assignees.indexOf(oldName);
+                                    if (index > -1) {
+                                        task.assignees[index] = name;
+                                    }
                                 }
                             });
                         }
@@ -6058,6 +6078,7 @@
                     text: taskText,
                     completed: false,
                     assignee: null,
+                    assignees: [],  // Support multiple assignees
                     startDate: null,
                     endDate: null
                 };
@@ -6120,19 +6141,38 @@
             document.getElementById('editTaskStartDate').value = task.startDate || '';
             document.getElementById('editTaskEndDate').value = task.endDate || '';
             
-            // Populate assignee dropdown
-            const assigneeSelect = document.getElementById('editTaskAssignee');
-            assigneeSelect.innerHTML = '<option value="">Unassigned</option>';
+            // Populate assignee checkboxes
+            const assigneeContainer = document.getElementById('editTaskAssignees');
+            assigneeContainer.innerHTML = '';
             
-            project.team.forEach(member => {
-                const option = document.createElement('option');
-                option.value = member;
-                option.textContent = member;
-                if (task.assignee === member) {
-                    option.selected = true;
-                }
-                assigneeSelect.appendChild(option);
-            });
+            // Handle both old (single) and new (array) assignee format
+            const currentAssignees = Array.isArray(task.assignees) ? task.assignees : 
+                                    (task.assignee ? [task.assignee] : []);
+            
+            if (project.team.length === 0) {
+                assigneeContainer.innerHTML = '<div style="color: #a0aec0; font-size: 14px;">No team members assigned to this project</div>';
+            } else {
+                project.team.forEach(member => {
+                    const div = document.createElement('div');
+                    div.style.cssText = 'padding: 6px 0; display: flex; align-items: center; gap: 8px;';
+                    
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.value = member;
+                    checkbox.id = `assignee-${member.replace(/\s+/g, '-')}`;
+                    checkbox.checked = currentAssignees.includes(member);
+                    checkbox.style.cssText = 'width: 18px; height: 18px; cursor: pointer;';
+                    
+                    const label = document.createElement('label');
+                    label.htmlFor = checkbox.id;
+                    label.textContent = member;
+                    label.style.cssText = 'cursor: pointer; font-size: 14px;';
+                    
+                    div.appendChild(checkbox);
+                    div.appendChild(label);
+                    assigneeContainer.appendChild(div);
+                });
+            }
             
             // Show modal
             document.getElementById('taskEditModal').classList.add('active');
@@ -6159,7 +6199,11 @@
             const text = document.getElementById('editTaskText').value.trim();
             const startDate = document.getElementById('editTaskStartDate').value;
             const endDate = document.getElementById('editTaskEndDate').value;
-            const assignee = document.getElementById('editTaskAssignee').value;
+            
+            // Get selected assignees from checkboxes
+            const assigneeContainer = document.getElementById('editTaskAssignees');
+            const checkboxes = assigneeContainer.querySelectorAll('input[type="checkbox"]:checked');
+            const assignees = Array.from(checkboxes).map(cb => cb.value);
             
             if (!text) {
                 alert('Please enter a task description');
@@ -6171,7 +6215,9 @@
             task.text = text;
             task.startDate = startDate || null;
             task.endDate = endDate || null;
-            task.assignee = assignee || null;
+            task.assignees = assignees;
+            // Also keep single assignee for backward compatibility (first one)
+            task.assignee = assignees.length > 0 ? assignees[0] : null;
             
             renderProjects();
             closeTaskEditModal();
@@ -6204,15 +6250,21 @@
                 assigneeDropdown.remove();
             }
             
+            // Get current assignees (handle both old and new format)
+            const currentAssignees = task.assignees && task.assignees.length > 0 ? task.assignees : 
+                                    (task.assignee ? [task.assignee] : []);
+            
             // Create dropdown
             const dropdown = document.createElement('div');
             dropdown.className = 'assignee-dropdown';
             dropdown.style.position = 'fixed';
+            dropdown.style.maxHeight = '300px';
+            dropdown.style.overflowY = 'auto';
             
             // Smart positioning - check if there's room below
             const spaceBelow = window.innerHeight - event.clientY;
             const spaceAbove = event.clientY;
-            const dropdownHeight = Math.min(200, (project.team.length + 1) * 40); // Approximate height
+            const dropdownHeight = Math.min(300, (project.team.length + 2) * 45); // Approximate height
             
             if (spaceBelow < dropdownHeight && spaceAbove > dropdownHeight) {
                 // Position above the click if not enough space below
@@ -6225,30 +6277,37 @@
             }
             
             // Make sure it doesn't go off the right edge
-            const maxLeft = window.innerWidth - 200; // 180px width + 20px margin
+            const maxLeft = window.innerWidth - 220; // 200px width + 20px margin
             if (event.clientX > maxLeft) {
                 dropdown.style.left = maxLeft + 'px';
             }
             
-            // Add team members to dropdown
-            let options = '';
+            // Add header
+            let options = '<div style="padding: 10px; font-weight: 600; border-bottom: 1px solid #e2e8f0; background: #f7fafc;">Select Assignees</div>';
             
-            // Option to unassign
-            if (task.assignee) {
+            // Option to clear all
+            if (currentAssignees.length > 0) {
                 options += `
-                    <div class="assignee-option" onclick="assignTaskTo(${projectIndex}, ${taskIndex}, null)">
-                        <span>Unassign</span>
+                    <div class="assignee-option" onclick="clearAllAssignees(${projectIndex}, ${taskIndex})" style="border-bottom: 1px solid #e2e8f0;">
+                        <span style="color: #e53e3e;">✕ Clear All</span>
                     </div>
                 `;
             }
             
-            // Add all project team members
+            // Add all project team members with checkboxes
             project.team.forEach(member => {
                 const teamMember = teamMembers.find(m => m.name === member);
+                const isAssigned = currentAssignees.includes(member);
                 options += `
-                    <div class="assignee-option" onclick="assignTaskTo(${projectIndex}, ${taskIndex}, '${member}')">
-                        <span>${member}</span>
-                        <span class="role-badge">${teamMember ? teamMember.role : ''}</span>
+                    <div class="assignee-option" onclick="toggleTaskAssignee(event, ${projectIndex}, ${taskIndex}, '${member.replace(/'/g, "\\'")}')"
+                         style="display: flex; align-items: center; gap: 10px; padding: 10px; cursor: pointer;">
+                        <input type="checkbox" ${isAssigned ? 'checked' : ''} 
+                               onclick="event.stopPropagation(); toggleTaskAssignee(event, ${projectIndex}, ${taskIndex}, '${member.replace(/'/g, "\\'")}')" 
+                               style="width: 18px; height: 18px; cursor: pointer;">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 500;">${member}</div>
+                            ${teamMember ? `<div class="role-badge" style="display: inline-block; margin-top: 2px;">${teamMember.role}</div>` : ''}
+                        </div>
                     </div>
                 `;
             });
@@ -6273,7 +6332,71 @@
 
         async function assignTaskTo(projectIndex, taskIndex, memberName) {
             const project = projects[projectIndex];
-            project.tasks[taskIndex].assignee = memberName;
+            const task = project.tasks[taskIndex];
+            
+            // Update both formats for backward compatibility
+            task.assignee = memberName;
+            task.assignees = memberName ? [memberName] : [];
+            
+            renderProjects();
+            closeAssigneeDropdown();
+            
+            // Update to database if project has ID
+            if (project.id) {
+                await updateProjectToDatabase(project);
+            } else {
+                await persistData();
+            }
+        }
+
+        async function toggleTaskAssignee(event, projectIndex, taskIndex, memberName) {
+            event.stopPropagation();
+            
+            const project = projects[projectIndex];
+            const task = project.tasks[taskIndex];
+            
+            // Initialize assignees array if needed (handle old format)
+            if (!task.assignees) {
+                task.assignees = task.assignee ? [task.assignee] : [];
+            }
+            
+            // Toggle assignee
+            const index = task.assignees.indexOf(memberName);
+            if (index > -1) {
+                // Remove assignee
+                task.assignees.splice(index, 1);
+            } else {
+                // Add assignee
+                task.assignees.push(memberName);
+            }
+            
+            // Update single assignee for backward compatibility (first one or null)
+            task.assignee = task.assignees.length > 0 ? task.assignees[0] : null;
+            
+            renderProjects();
+            
+            // Keep dropdown open for multiple selections
+            // Just update the checkboxes visually
+            const checkbox = event.target.type === 'checkbox' ? event.target : event.currentTarget.querySelector('input[type="checkbox"]');
+            if (checkbox) {
+                checkbox.checked = task.assignees.includes(memberName);
+            }
+            
+            // Update to database if project has ID
+            if (project.id) {
+                await updateProjectToDatabase(project);
+            } else {
+                await persistData();
+            }
+        }
+
+        async function clearAllAssignees(projectIndex, taskIndex) {
+            const project = projects[projectIndex];
+            const task = project.tasks[taskIndex];
+            
+            task.assignees = [];
+            task.assignee = null;
+            
             renderProjects();
             closeAssigneeDropdown();
             
@@ -6932,8 +7055,15 @@
                         // Include ALL tasks, regardless of whether they have dates or not
                         // This shows: completed, in-progress, overdue, scheduled, and unscheduled tasks
                         tasks.forEach(task => {
-                            // Apply assignee filter
-                            if (selectedAssignee === 'all' || task.assignee === selectedAssignee) {
+                            // Apply assignee filter - check both old assignee field and new assignees array
+                            let includeTask = selectedAssignee === 'all';
+                            if (!includeTask) {
+                                // Check assignees array first (new format)
+                                const assignees = task.assignees && task.assignees.length > 0 ? task.assignees : 
+                                                 (task.assignee ? [task.assignee] : []);
+                                includeTask = assignees.includes(selectedAssignee);
+                            }
+                            if (includeTask) {
                                 hierarchy[channel][app][project.name].tasks.push(task);
                             }
                         });
@@ -7113,12 +7243,17 @@
                         // Starting cell with the bar that spans multiple weeks
                         const gridColumn = `${weekIdx + 2} / span ${widthInWeeks}`; // +2 for Item column
                         const hasTodayMarker = isTodayWeek || (todayWeekIndex >= startWeek && todayWeekIndex <= endWeek);
+                        // Get all assignees for tooltip
+                        const assignees = !isProject && item.assignees && item.assignees.length > 0 ? item.assignees : 
+                                         (!isProject && item.assignee ? [item.assignee] : []);
+                        const assigneeText = assignees.length > 0 ? 'Assignees: ' + assignees.join(', ') : '';
+                        
                         result.push(`
                             <div class="master-timeline-cell" style="grid-column: ${gridColumn}; position: relative;">
                                 <div class="master-timeline-bar ${barClass}" 
                                      style="width: 100%; height: 80%; top: 10%; left: 0; position: absolute;"
                                      title="${isProject ? 'Project' : 'Task'}: ${item.text || item.name}
-${item.assignee ? 'Assignee: ' + item.assignee : ''}
+${assigneeText}
 Start: ${startDate ? startDate.toLocaleDateString() : '—'}
 End: ${endDate ? endDate.toLocaleDateString() : '—'}">
                                 </div>
@@ -7245,10 +7380,17 @@ End: ${endDate ? endDate.toLocaleDateString() : '—'}">
                             const startDate = task.startDate ? new Date(task.startDate) : null;
                             const endDate = task.endDate ? new Date(task.endDate) : null;
                             
+                            // Get all assignees (support both old single assignee and new multiple assignees)
+                            const assignees = task.assignees && task.assignees.length > 0 ? task.assignees : 
+                                             (task.assignee ? [task.assignee] : []);
+                            const assigneeBadges = assignees.length > 0 
+                                ? assignees.map(name => `<span style="background: #667eea; color: white; padding: 2px 6px; border-radius: 8px; font-size: 10px; margin-left: 6px;" title="${assignees.join(', ')}">${name}</span>`).join('')
+                                : '';
+                            
                             rowHtml += `
                                 <div class="master-timeline-row-header master-timeline-task" style="padding-left: 60px;">
                                     ${task.completed ? '✅' : '⏳'} ${task.text}
-                                    ${task.assignee ? `<span style="background: #667eea; color: white; padding: 2px 6px; border-radius: 8px; font-size: 10px; margin-left: 6px;">${task.assignee}</span>` : ''}
+                                    ${assigneeBadges}
                                 </div>
                                 ${renderTimelineBar(task, startDate, endDate, false)}
                             `;
@@ -7529,7 +7671,13 @@ ${endDate ? 'End: ' + endDate.toLocaleDateString() : ''}">
             
             sortedTasks.forEach(task => {
                 const icon = task.completed ? '✅' : '⏳';
-                const assignee = task.assignee || 'Unassigned';
+                // Get all assignees (support both old single assignee and new multiple assignees)
+                const assignees = task.assignees && task.assignees.length > 0 ? task.assignees : 
+                                 (task.assignee ? [task.assignee] : []);
+                const assigneeDisplay = assignees.length === 0 ? 'Unassigned' :
+                                       assignees.length === 1 ? assignees[0] :
+                                       assignees.join(', ');
+                const hasAssignees = assignees.length > 0;
                 const dates = task.startDate || task.endDate 
                     ? `<span class="dashboard-task-dates">
                         ${task.startDate ? new Date(task.startDate).toLocaleDateString() : '—'} → 
@@ -7544,8 +7692,8 @@ ${endDate ? 'End: ' + endDate.toLocaleDateString() : ''}">
                             ${task.text}
                             ${dates}
                         </div>
-                        <span class="dashboard-task-assignee" style="${!task.assignee ? 'background: #cbd5e0; color: #4a5568;' : ''}">
-                            ${assignee}
+                        <span class="dashboard-task-assignee" style="${!hasAssignees ? 'background: #cbd5e0; color: #4a5568;' : ''}" title="${assignees.length > 1 ? assignees.join(', ') : ''}">
+                            ${assigneeDisplay}
                         </span>
                     </div>
                 `;

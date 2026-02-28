@@ -133,7 +133,8 @@ def backup_endpoint():
                         completed=task_data.get('completed', False),
                         start_date=task_data.get('startDate'),
                         end_date=task_data.get('endDate'),
-                        assignee_name=task_data.get('assignee')
+                        assignee_name=task_data.get('assignee'),
+                        assignees=task_data.get('assignees', [])
                     )
                     db.session.add(task)
                     db.session.flush()
@@ -225,7 +226,8 @@ def backup_endpoint():
                                 completed=task_data.get('completed', False),
                                 start_date=task_data.get('startDate'),
                                 end_date=task_data.get('endDate'),
-                                assignee_name=task_data.get('assignee')
+                                assignee_name=task_data.get('assignee'),
+                                assignees=task_data.get('assignees', [])
                             )
                             db.session.add(task)
                             db.session.flush()
@@ -283,7 +285,8 @@ def backup_endpoint():
                                 completed=task_data.get('completed', False),
                                 start_date=task_data.get('startDate'),
                                 end_date=task_data.get('endDate'),
-                                assignee_name=task_data.get('assignee')
+                                assignee_name=task_data.get('assignee'),
+                                assignees=task_data.get('assignees', [])
                             )
                             db.session.add(task)
                             db.session.flush()
@@ -810,7 +813,8 @@ def sync_project():
                     completed=task_data.get('completed', False),
                     start_date=start_date,
                     end_date=end_date,
-                    assignee_name=task_data.get('assignee')
+                    assignee_name=task_data.get('assignee'),
+                    assignees=task_data.get('assignees', [])
                 )
                 db.session.add(task)
                 db.session.flush()
@@ -902,7 +906,8 @@ def update_project(project_id):
                     completed=task_data.get('completed', False),
                     start_date=start_date,
                     end_date=end_date,
-                    assignee_name=task_data.get('assignee')
+                    assignee_name=task_data.get('assignee'),
+                    assignees=task_data.get('assignees', [])
                 )
                 db.session.add(task)
                 db.session.flush()  # Get task ID
@@ -1068,7 +1073,8 @@ def create_task(project_id):
             completed=data.get('completed', False),
             start_date=data.get('startDate'),
             end_date=data.get('endDate'),
-            assignee_name=data.get('assignee')
+            assignee_name=data.get('assignee'),
+            assignees=data.get('assignees', [])
         )
         
         db.session.add(task)
@@ -1098,6 +1104,8 @@ def update_task(task_id):
             task.end_date = data['endDate']
         if 'assignee' in data:
             task.assignee_name = data['assignee']
+        if 'assignees' in data:
+            task.assignees = data['assignees']
         
         db.session.commit()
         return jsonify(task.to_dict()), 200
@@ -1257,7 +1265,8 @@ def import_data():
                     completed=task_data.get('completed', False),
                     start_date=task_data.get('startDate'),
                     end_date=task_data.get('endDate'),
-                    assignee_name=task_data.get('assignee')
+                    assignee_name=task_data.get('assignee'),
+                    assignees=task_data.get('assignees', [])
                 )
                 db.session.add(task)
                 db.session.flush()

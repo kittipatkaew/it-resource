@@ -144,6 +144,7 @@ class Task(db.Model):
     start_date = db.Column(db.Date)
     end_date = db.Column(db.Date)
     assignee_name = db.Column(db.String(255), db.ForeignKey('team_members.name', ondelete='SET NULL', onupdate='CASCADE'))
+    assignees = db.Column(db.JSON, default=list)  # Support multiple assignees
     display_order = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -161,6 +162,7 @@ class Task(db.Model):
             'startDate': self.start_date.isoformat() if self.start_date else None,
             'endDate': self.end_date.isoformat() if self.end_date else None,
             'assignee': self.assignee_name,
+            'assignees': self.assignees if self.assignees else [],  # Return multiple assignees
             'subtasks': [subtask.to_dict() for subtask in self.subtasks]
         }
 
