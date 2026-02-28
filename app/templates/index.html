@@ -2745,6 +2745,11 @@
                                 <option value="11">December</option>
                             </select>
                         </div>
+                        <div>
+                            <button onclick="resetTimelineFilters()" style="padding: 8px 16px; border: 2px solid #e2e8f0; border-radius: 8px; background: white; font-size: 14px; cursor: pointer; font-weight: 600; color: #4a5568; transition: all 0.2s;" onmouseover="this.style.background='#f7fafc'; this.style.borderColor='#cbd5e0'" onmouseout="this.style.background='white'; this.style.borderColor='#e2e8f0'" title="Reset all filters to default">
+                                🔄 Reset Filters
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <div id="masterTimeline"></div>
@@ -6697,6 +6702,24 @@
             }
             
             dashboardView.innerHTML = html;
+        }
+
+        function resetTimelineFilters() {
+            // Reset all filter dropdowns to 'all'
+            const channelFilter = document.getElementById('timelineChannelFilter');
+            const applicationFilter = document.getElementById('timelineApplicationFilter');
+            const projectFilter = document.getElementById('timelineProjectFilter');
+            const assigneeFilter = document.getElementById('timelineAssigneeFilter');
+            const completedMonthFilter = document.getElementById('timelineCompletedMonthFilter');
+            
+            if (channelFilter) channelFilter.value = 'all';
+            if (applicationFilter) applicationFilter.value = 'all';
+            if (projectFilter) projectFilter.value = 'all';
+            if (assigneeFilter) assigneeFilter.value = 'all';
+            if (completedMonthFilter) completedMonthFilter.value = 'all';
+            
+            // Re-render the timeline
+            renderMasterTimeline();
         }
 
         function renderMasterTimeline() {
