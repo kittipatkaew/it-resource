@@ -3462,8 +3462,8 @@
             // Optimistic UI update
             renderProjects();
             
-            // Persist to server if project has ID
-            if (project.id) {
+            // Persist to server
+            if (project.id && typeof project.id === 'number' && project.id > 0) {
                 try {
                     const response = await fetch(`${API_BASE_URL}/api/projects/${project.id}`, {
                         method: 'PUT',
@@ -3482,13 +3482,11 @@
                     });
                     
                     if (response.ok) {
-                        console.log(`✓ Channel "${channel}" added to project`);
+                        console.log(`✓ Channel "${channel}" added to project and saved to database`);
                     } else if (response.status === 404) {
-                        // Project doesn't exist in database - remove invalid ID and save locally
-                        console.warn(`Project ID ${project.id} not found in database. Removing ID and saving locally.`);
-                        delete project.id;
-                        await persistData();
-                        return; // Don't throw error, just persist locally
+                        // Project doesn't exist in database - try to sync it
+                        console.warn(`Project ID ${project.id} not found in database. Syncing project...`);
+                        await syncProjectToDatabase(project);
                     } else {
                         // Other error - parse and throw
                         let errorMessage = 'Failed to update project';
@@ -3508,8 +3506,46 @@
                     alert(`Failed to add channel: ${err.message || 'Please try again.'}`);
                 }
             } else {
-                // No ID, just persist locally
-                await persistData();
+                // No valid database ID - create project in database first
+                try {
+                    console.log('Creating project in database...');
+                    const response = await fetch(`${API_BASE_URL}/api/projects`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            name: project.name,
+                            description: project.description,
+                            status: project.status,
+                            starred: project.starred,
+                            meetingMinutes: project.meetingMinutes || project.meeting_minutes || '',
+                            channels: project.channels,
+                            applications: project.applications || [],
+                            deliveryDate: project.deliveryDate || null,
+                            tasks: project.tasks || []
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        const createdProject = await response.json();
+                        project.id = createdProject.id;
+                        console.log(`✓ Project created in database with ID ${project.id}, channel "${channel}" added`);
+                        await persistData();
+                    } else if (response.status === 409) {
+                        // Project already exists, get the ID
+                        const data = await response.json();
+                        if (data.existingId) {
+                            project.id = data.existingId;
+                            console.log(`✓ Project already exists in database with ID ${project.id}`);
+                            await persistData();
+                        }
+                    } else {
+                        throw new Error('Failed to create project in database');
+                    }
+                } catch (err) {
+                    console.error('Failed to create project in database:', err);
+                    // Still save locally
+                    await persistData();
+                }
             }
         }
 
@@ -3527,8 +3563,8 @@
             // Optimistic UI update
             renderProjects();
             
-            // Persist to server if project has ID
-            if (project.id) {
+            // Persist to server
+            if (project.id && typeof project.id === 'number' && project.id > 0) {
                 try {
                     const response = await fetch(`${API_BASE_URL}/api/projects/${project.id}`, {
                         method: 'PUT',
@@ -3547,13 +3583,11 @@
                     });
                     
                     if (response.ok) {
-                        console.log(`✓ Channel "${channel}" removed from project`);
+                        console.log(`✓ Channel "${channel}" removed from project and saved to database`);
                     } else if (response.status === 404) {
-                        // Project doesn't exist in database - remove invalid ID and save locally
-                        console.warn(`Project ID ${project.id} not found in database. Removing ID and saving locally.`);
-                        delete project.id;
-                        await persistData();
-                        return;
+                        // Project doesn't exist in database - try to sync it
+                        console.warn(`Project ID ${project.id} not found in database. Syncing project...`);
+                        await syncProjectToDatabase(project);
                     } else {
                         // Other error - parse and throw
                         let errorMessage = 'Failed to update project';
@@ -3573,8 +3607,46 @@
                     alert(`Failed to remove channel: ${err.message || 'Please try again.'}`);
                 }
             } else {
-                // No ID, just persist locally
-                await persistData();
+                // No valid database ID - create project in database first
+                try {
+                    console.log('Creating project in database...');
+                    const response = await fetch(`${API_BASE_URL}/api/projects`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            name: project.name,
+                            description: project.description,
+                            status: project.status,
+                            starred: project.starred,
+                            meetingMinutes: project.meetingMinutes || project.meeting_minutes || '',
+                            channels: project.channels,
+                            applications: project.applications || [],
+                            deliveryDate: project.deliveryDate || null,
+                            tasks: project.tasks || []
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        const createdProject = await response.json();
+                        project.id = createdProject.id;
+                        console.log(`✓ Project created in database with ID ${project.id}, channel "${channel}" removed`);
+                        await persistData();
+                    } else if (response.status === 409) {
+                        // Project already exists, get the ID
+                        const data = await response.json();
+                        if (data.existingId) {
+                            project.id = data.existingId;
+                            console.log(`✓ Project already exists in database with ID ${project.id}`);
+                            await persistData();
+                        }
+                    } else {
+                        throw new Error('Failed to create project in database');
+                    }
+                } catch (err) {
+                    console.error('Failed to create project in database:', err);
+                    // Still save locally
+                    await persistData();
+                }
             }
         }
 
@@ -3598,8 +3670,8 @@
             // Optimistic UI update
             renderProjects();
             
-            // Persist to server if project has ID
-            if (project.id) {
+            // Persist to server
+            if (project.id && typeof project.id === 'number' && project.id > 0) {
                 try {
                     const response = await fetch(`${API_BASE_URL}/api/projects/${project.id}`, {
                         method: 'PUT',
@@ -3618,13 +3690,11 @@
                     });
                     
                     if (response.ok) {
-                        console.log(`✓ Application "${application}" added to project`);
+                        console.log(`✓ Application "${application}" added to project and saved to database`);
                     } else if (response.status === 404) {
-                        // Project doesn't exist in database - remove invalid ID and save locally
-                        console.warn(`Project ID ${project.id} not found in database. Removing ID and saving locally.`);
-                        delete project.id;
-                        await persistData();
-                        return;
+                        // Project doesn't exist in database - try to sync it
+                        console.warn(`Project ID ${project.id} not found in database. Syncing project...`);
+                        await syncProjectToDatabase(project);
                     } else {
                         // Other error - parse and throw
                         let errorMessage = 'Failed to update project';
@@ -3644,8 +3714,46 @@
                     alert(`Failed to add application: ${err.message || 'Please try again.'}`);
                 }
             } else {
-                // No ID, just persist locally
-                await persistData();
+                // No valid database ID - create project in database first
+                try {
+                    console.log('Creating project in database...');
+                    const response = await fetch(`${API_BASE_URL}/api/projects`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            name: project.name,
+                            description: project.description,
+                            status: project.status,
+                            starred: project.starred,
+                            meetingMinutes: project.meetingMinutes || project.meeting_minutes || '',
+                            channels: project.channels || [],
+                            applications: project.applications,
+                            deliveryDate: project.deliveryDate || null,
+                            tasks: project.tasks || []
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        const createdProject = await response.json();
+                        project.id = createdProject.id;
+                        console.log(`✓ Project created in database with ID ${project.id}, application "${application}" added`);
+                        await persistData();
+                    } else if (response.status === 409) {
+                        // Project already exists, get the ID
+                        const data = await response.json();
+                        if (data.existingId) {
+                            project.id = data.existingId;
+                            console.log(`✓ Project already exists in database with ID ${project.id}`);
+                            await persistData();
+                        }
+                    } else {
+                        throw new Error('Failed to create project in database');
+                    }
+                } catch (err) {
+                    console.error('Failed to create project in database:', err);
+                    // Still save locally
+                    await persistData();
+                }
             }
         }
 
@@ -3663,8 +3771,8 @@
             // Optimistic UI update
             renderProjects();
             
-            // Persist to server if project has ID
-            if (project.id) {
+            // Persist to server
+            if (project.id && typeof project.id === 'number' && project.id > 0) {
                 try {
                     const response = await fetch(`${API_BASE_URL}/api/projects/${project.id}`, {
                         method: 'PUT',
@@ -3683,14 +3791,11 @@
                     });
                     
                     if (response.ok) {
-                        console.log(`✓ Application "${application}" removed from project`);
+                        console.log(`✓ Application "${application}" removed from project and saved to database`);
                     } else if (response.status === 404) {
-                        // Project doesn't exist in database - remove invalid ID and save locally
-                        console.warn(`Project ID ${project.id} not found in database. Removing ID and saving locally.`);
-                        delete project.id;
-                        await persistData();
-                        // Don't revert UI changes, just save locally
-                        return;
+                        // Project doesn't exist in database - try to sync it
+                        console.warn(`Project ID ${project.id} not found in database. Syncing project...`);
+                        await syncProjectToDatabase(project);
                     } else {
                         // Other error - parse and throw
                         let errorMessage = 'Failed to update project';
@@ -3710,8 +3815,46 @@
                     alert(`Failed to remove application: ${err.message || 'Please try again.'}`);
                 }
             } else {
-                // No ID, just persist locally
-                await persistData();
+                // No valid database ID - create project in database first
+                try {
+                    console.log('Creating project in database...');
+                    const response = await fetch(`${API_BASE_URL}/api/projects`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            name: project.name,
+                            description: project.description,
+                            status: project.status,
+                            starred: project.starred,
+                            meetingMinutes: project.meetingMinutes || project.meeting_minutes || '',
+                            channels: project.channels || [],
+                            applications: project.applications,
+                            deliveryDate: project.deliveryDate || null,
+                            tasks: project.tasks || []
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        const createdProject = await response.json();
+                        project.id = createdProject.id;
+                        console.log(`✓ Project created in database with ID ${project.id}, application "${application}" removed`);
+                        await persistData();
+                    } else if (response.status === 409) {
+                        // Project already exists, get the ID
+                        const data = await response.json();
+                        if (data.existingId) {
+                            project.id = data.existingId;
+                            console.log(`✓ Project already exists in database with ID ${project.id}`);
+                            await persistData();
+                        }
+                    } else {
+                        throw new Error('Failed to create project in database');
+                    }
+                } catch (err) {
+                    console.error('Failed to create project in database:', err);
+                    // Still save locally
+                    await persistData();
+                }
             }
         }
 
