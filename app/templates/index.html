@@ -3496,7 +3496,8 @@
                         starred: newVal,
                         meetingMinutes: project.meetingMinutes || project.meeting_minutes || '',
                         channels: project.channels || [],
-                        applications: project.applications || []
+                        applications: project.applications || [],
+                        deliveryDate: project.deliveryDate || null
                     })
                 });
                 
@@ -3512,7 +3513,9 @@
                     }
                     renderProjects();
                 } else {
-                    throw new Error('Failed to update project');
+                    const errorText = await response.text();
+                    console.error('Update failed:', errorText);
+                    throw new Error(`Failed to update project: ${errorText}`);
                 }
             } catch (err) {
                 console.error('Failed to persist star:', err);
@@ -5667,25 +5670,63 @@
         }
 
         // Delete project
-        function deleteProject(projectIndex) {
+        async function deleteProject(projectIndex) {
             const project = projects[projectIndex];
             
             if (confirm(`Are you sure you want to delete "${project.name}"? This will remove all tasks and team assignments.`)) {
-                // Remove project from all team members' project lists
-                project.team.forEach(memberName => {
-                    const member = teamMembers.find(m => m.name === memberName);
-                    if (member) {
-                        member.projects = member.projects.filter(p => p !== project.name);
-                        member.workload = Math.max(0, member.workload - 25);
+                const projectId = project.id;
+                const hasValidId = typeof projectId === 'number' && projectId > 0;
+                
+                if (hasValidId) {
+                    // Delete from database via API
+                    try {
+                        const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}`, {
+                            method: 'DELETE'
+                        });
+                        
+                        if (response.ok) {
+                            console.log(`✓ Project "${project.name}" deleted from database`);
+                            
+                            // Reload from database to get fresh state
+                            await loadData();
+                            renderProjects();
+                            renderTeam();
+                        } else if (response.status === 404) {
+                            // Project not found in database, delete locally
+                            console.warn(`Project ${projectId} not found in database, removing locally`);
+                            projects.splice(projectIndex, 1);
+                            renderProjects();
+                            renderTeam();
+                            persistData();
+                        } else {
+                            const errorText = await response.text();
+                            console.error('Failed to delete project:', errorText);
+                            alert(`Failed to delete project: ${errorText}`);
+                        }
+                    } catch (error) {
+                        console.error('Error deleting project:', error);
+                        alert(`Error deleting project: ${error.message}`);
                     }
-                });
-                
-                // Remove the project
-                projects.splice(projectIndex, 1);
-                
-                renderProjects();
-                renderTeam();
-                persistData();
+                } else {
+                    // Project has no valid database ID - delete locally only
+                    console.log(`Deleting local-only project "${project.name}"`);
+                    
+                    // Remove project from all team members' project lists
+                    project.team.forEach(memberName => {
+                        const member = teamMembers.find(m => m.name === memberName);
+                        if (member) {
+                            member.projects = member.projects.filter(p => p !== project.name);
+                            member.workload = Math.max(0, member.workload - 25);
+                        }
+                    });
+                    
+                    // Remove the project
+                    projects.splice(projectIndex, 1);
+                    
+                    renderProjects();
+                    renderTeam();
+                    persistData();
+                }
             }
         }
 
