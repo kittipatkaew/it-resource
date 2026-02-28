@@ -3235,15 +3235,49 @@
             setTimeout(() => {
                 const projectCard = document.querySelector(`.project-card[data-project="${projectName.replace(/"/g, '\\"')}"]`);
                 if (projectCard) {
-                    projectCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    // Add highlight effect
+                    // Calculate the position of the project card relative to the document
+                    const cardRect = projectCard.getBoundingClientRect();
+                    const absoluteTop = cardRect.top + window.pageYOffset;
+                    
+                    // Scroll to position the card at the top with a small offset (80px for any headers/padding)
+                    window.scrollTo({
+                        top: absoluteTop - 80,
+                        behavior: 'smooth'
+                    });
+                    
+                    // Find the project title within the card
+                    const projectTitle = projectCard.querySelector('.project-title');
+                    
+                    // Add highlight effect to the entire card
                     projectCard.style.outline = '3px solid #667eea';
                     projectCard.style.outlineOffset = '4px';
                     projectCard.style.transition = 'all 0.3s';
+                    projectCard.style.boxShadow = '0 8px 32px rgba(102, 126, 234, 0.3)';
+                    
+                    // Add special highlight to the project title
+                    if (projectTitle) {
+                        projectTitle.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                        projectTitle.style.webkitBackgroundClip = 'text';
+                        projectTitle.style.backgroundClip = 'text';
+                        projectTitle.style.webkitTextFillColor = 'transparent';
+                        projectTitle.style.fontSize = '1.3em';
+                        projectTitle.style.transition = 'all 0.3s';
+                    }
+                    
+                    // Remove highlight effects after 3 seconds
                     setTimeout(() => {
                         projectCard.style.outline = '';
                         projectCard.style.outlineOffset = '';
-                    }, 2000);
+                        projectCard.style.boxShadow = '';
+                        
+                        if (projectTitle) {
+                            projectTitle.style.background = '';
+                            projectTitle.style.webkitBackgroundClip = '';
+                            projectTitle.style.backgroundClip = '';
+                            projectTitle.style.webkitTextFillColor = '';
+                            projectTitle.style.fontSize = '';
+                        }
+                    }, 3000);
                 }
             }, 100);
         }
