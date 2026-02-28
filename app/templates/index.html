@@ -5596,7 +5596,7 @@
             }
         }
 
-        function addProjectLink(projectIndex) {
+        async function addProjectLink(projectIndex) {
             const title = document.getElementById(`linkTitle${projectIndex}`).value.trim();
             const url = document.getElementById(`linkUrl${projectIndex}`).value.trim();
             
@@ -5611,11 +5611,12 @@
                 fullUrl = 'https://' + url;
             }
             
-            if (!projects[projectIndex].links) {
-                projects[projectIndex].links = [];
+            const project = projects[projectIndex];
+            if (!project.links) {
+                project.links = [];
             }
             
-            projects[projectIndex].links.push({
+            project.links.push({
                 title: title || fullUrl,
                 url: fullUrl
             });
@@ -5627,14 +5628,27 @@
             // Hide input and re-render
             toggleLinkInput(projectIndex);
             renderProjects();
-            persistData();
+            
+            // Update to database if project has valid ID, otherwise persist locally
+            if (project.id && typeof project.id === 'number' && project.id > 0) {
+                await updateProjectToDatabase(project);
+            } else {
+                await persistData();
+            }
         }
 
-        function removeProjectLink(projectIndex, linkIndex) {
+        async function removeProjectLink(projectIndex, linkIndex) {
             if (confirm('Remove this link?')) {
-                projects[projectIndex].links.splice(linkIndex, 1);
+                const project = projects[projectIndex];
+                project.links.splice(linkIndex, 1);
                 renderProjects();
-                persistData();
+                
+                // Update to database if project has valid ID, otherwise persist locally
+                if (project.id && typeof project.id === 'number' && project.id > 0) {
+                    await updateProjectToDatabase(project);
+                } else {
+                    await persistData();
+                }
             }
         }
 
@@ -5651,11 +5665,12 @@
             }
         }
 
-        function saveMeetingMinutes(projectIndex) {
+        async function saveMeetingMinutes(projectIndex) {
             const textarea = document.getElementById(`meetingMinutesTextarea${projectIndex}`);
             const meetingMinutes = textarea.value.trim();
             
-            projects[projectIndex].meetingMinutes = meetingMinutes;
+            const project = projects[projectIndex];
+            project.meetingMinutes = meetingMinutes;
             
             titleToggle = document.getElementById(`meetingMinutes${projectIndex}`);
             if (meetingMinutes) {
@@ -5666,7 +5681,13 @@
             
             toggleMeetingMinutesEdit(projectIndex);
             renderProjects();
-            persistData();
+            
+            // Update to database if project has valid ID, otherwise persist locally
+            if (project.id && typeof project.id === 'number' && project.id > 0) {
+                await updateProjectToDatabase(project);
+            } else {
+                await persistData();
+            }
         }
 
         // Delete project
