@@ -2732,6 +2732,11 @@
                 <div id="masterTimeline"></div>
                 
                 <div id="dashboardView"></div>
+                
+                <!-- Scroll to Top Button -->
+                <button class="scroll-to-top" id="scrollToTopBtnDashboard" onclick="scrollToTop()" title="Scroll to top">
+                    ↑
+                </button>
             </div>
         </div>
     </div>
@@ -4802,9 +4807,11 @@
         // Show/hide scroll to top button based on scroll position
         window.addEventListener('scroll', function() {
             const scrollToTopBtn = document.getElementById('scrollToTopBtn');
+            const scrollToTopBtnDashboard = document.getElementById('scrollToTopBtnDashboard');
             const projectsTab = document.getElementById('projects');
+            const dashboardTab = document.getElementById('dashboard');
             
-            // Only show button when projects tab is active
+            // Show button for Projects tab when active
             if (scrollToTopBtn && projectsTab && projectsTab.classList.contains('active')) {
                 if (window.pageYOffset > 300) {
                     scrollToTopBtn.classList.add('visible');
@@ -4813,6 +4820,17 @@
                 }
             } else if (scrollToTopBtn) {
                 scrollToTopBtn.classList.remove('visible');
+            }
+            
+            // Show button for Dashboard tab when active
+            if (scrollToTopBtnDashboard && dashboardTab && dashboardTab.classList.contains('active')) {
+                if (window.pageYOffset > 300) {
+                    scrollToTopBtnDashboard.classList.add('visible');
+                } else {
+                    scrollToTopBtnDashboard.classList.remove('visible');
+                }
+            } else if (scrollToTopBtnDashboard) {
+                scrollToTopBtnDashboard.classList.remove('visible');
             }
         });
 
