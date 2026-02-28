@@ -5769,7 +5769,7 @@
         }
 
         // Add member to project
-        function addMemberToProject(projectName, memberName) {
+        async function addMemberToProject(projectName, memberName) {
             const project = projects.find(p => p.name === projectName);
             const member = teamMembers.find(m => m.name === memberName);
             
@@ -5788,25 +5788,92 @@
                 return;
             }
             
-            project.team.push(memberName);
+            const projectId = project.id;
+            const hasValidId = typeof projectId === 'number' && projectId > 0;
             
-            // Update member's projects and workload
-            if (!member.projects.includes(projectName)) {
-                member.projects.push(projectName);
-                member.workload = Math.min(100, member.workload + 25);
+            if (hasValidId) {
+                // Add team member via API
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/team`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ member_name: memberName })
+                    });
+                    
+                    if (response.ok) {
+                        console.log(`✓ Team member "${memberName}" added to project "${projectName}"`);
+                        
+                        // Reload from database to get fresh state
+                        await loadData();
+                        renderProjects();
+                        renderTeam();
+                    } else {
+                        const errorText = await response.text();
+                        console.error('Failed to add team member:', errorText);
+                        alert(`Failed to add team member: ${errorText}`);
+                    }
+                } catch (error) {
+                    console.error('Error adding team member:', error);
+                    alert(`Error adding team member: ${error.message}`);
+                }
+            } else {
+                // Project has no valid database ID - update locally only
+                console.log(`Adding team member locally for project "${projectName}"`);
+                
+                project.team.push(memberName);
+                
+                // Update member's projects and workload
+                if (!member.projects.includes(projectName)) {
+                    member.projects.push(projectName);
+                    member.workload = Math.min(100, member.workload + 25);
+                }
+                
+                renderProjects();
+                renderTeam();
+                persistData();
             }
-            
-            renderProjects();
-            renderTeam();
-            persistData();
         }
 
         // Remove member from project
-        function removeMemberFromProject(projectName, memberName) {
+        async function removeMemberFromProject(projectName, memberName) {
             const project = projects.find(p => p.name === projectName);
             const member = teamMembers.find(m => m.name === memberName);
             
-            if (project && member) {
+            if (!project || !member) {
+                console.error('Project or member not found');
+                return;
+            }
+            
+            const projectId = project.id;
+            const hasValidId = typeof projectId === 'number' && projectId > 0;
+            
+            if (hasValidId) {
+                // Remove team member via API
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/team/${encodeURIComponent(memberName)}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    if (response.ok) {
+                        console.log(`✓ Team member "${memberName}" removed from project "${projectName}"`);
+                        
+                        // Reload from database to get fresh state
+                        await loadData();
+                        renderProjects();
+                        renderTeam();
+                    } else {
+                        const errorText = await response.text();
+                        console.error('Failed to remove team member:', errorText);
+                        alert(`Failed to remove team member: ${errorText}`);
+                    }
+                } catch (error) {
+                    console.error('Error removing team member:', error);
+                    alert(`Error removing team member: ${error.message}`);
+                }
+            } else {
+                // Project has no valid database ID - update locally only
+                console.log(`Removing team member locally for project "${projectName}"`);
+                
                 project.team = project.team.filter(m => m !== memberName);
                 member.projects = member.projects.filter(p => p !== projectName);
                 member.workload = Math.max(0, member.workload - 25);
