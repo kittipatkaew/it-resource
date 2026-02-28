@@ -5370,7 +5370,9 @@
             const files = event.target.files;
             if (!files || files.length === 0) return;
             
+            const project = projects[projectIndex];
             const imageDataArray = [];
+            
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
                 const imageData = await new Promise((resolve) => {
@@ -5381,14 +5383,110 @@
                 imageDataArray.push(imageData);
             }
             
-            if (!projects[projectIndex].images) {
-                projects[projectIndex].images = [];
+            if (!project.images) {
+                project.images = [];
             }
-            projects[projectIndex].images = [...projects[projectIndex].images, ...imageDataArray];
+            
+            // Add images to local array first (for immediate UI feedback)
+            project.images = [...project.images, ...imageDataArray];
             renderProjects();
-            persistData();
-            // Reset file input
+            
+            // Save to database immediately
+            const hasValidId = typeof project.id === 'number' && project.id > 0;
+            
+            if (!hasValidId) {
+                // Project doesn't have a valid database ID - create it first
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/projects`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            name: project.name,
+                            description: project.description || '',
+                            status: project.status || 'planning',
+                            starred: project.starred || false,
+                            meetingMinutes: project.meetingMinutes || '',
+                            channels: project.channels || [],
+                            applications: project.applications || [],
+                            deliveryDate: project.deliveryDate || null
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        const createdProject = await response.json();
+                        project.id = createdProject.id;
+                        console.log(`✓ Project "${project.name}" created in database with ID ${project.id}`);
+                        
+                        // Now add all images to the database
+                        for (const imageData of imageDataArray) {
+                            await addImageToDatabase(project.id, imageData, project.name);
+                        }
+                    } else if (response.status === 409) {
+                        // Project already exists, get its ID
+                        const errorData = await response.json();
+                        if (errorData.existingId) {
+                            project.id = errorData.existingId;
+                            console.log(`✓ Project "${project.name}" already exists with ID ${project.id}`);
+                            
+                            // Add all images to the database
+                            for (const imageData of imageDataArray) {
+                                await addImageToDatabase(project.id, imageData, project.name);
+                            }
+                        }
+                    } else {
+                        console.error('Failed to create project:', await response.text());
+                    }
+                } catch (error) {
+                    console.error('Error creating project:', error);
+                }
+            } else {
+                // Project has valid ID - add images to database
+                for (const imageData of imageDataArray) {
+                    await addImageToDatabase(project.id, imageData, project.name);
+                }
+            }
+            
+            // Reset file input and reload from database to get proper state
             event.target.value = '';
+            await loadData(); // Reload from database instead of persisting local state
+        }
+        
+        async function addImageToDatabase(projectId, imageData, projectName) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/images`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image_data: imageData })
+                });
+                
+                if (response.ok) {
+                    console.log(`✓ Image added to project "${projectName}" and saved to database`);
+                    return true;
+                } else if (response.status === 404) {
+                    console.warn(`Project ${projectId} not found in database - attempting to sync`);
+                    // Attempt to sync project by finding it in local array
+                    const project = projects.find(p => p.id === projectId);
+                    if (project) {
+                        await syncProjectToDatabase(project);
+                        // Retry adding the image
+                        const retryResponse = await fetch(`${API_BASE_URL}/api/projects/${projectId}/images`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ image_data: imageData })
+                        });
+                        if (retryResponse.ok) {
+                            console.log(`✓ Image added after project sync`);
+                            return true;
+                        }
+                    }
+                } else {
+                    const errorText = await response.text();
+                    console.error('Failed to add image to database:', errorText);
+                }
+            } catch (error) {
+                console.error('Error adding image to database:', error);
+            }
+            return false;
         }
 
         async function removeProjectImageByIndex(event, projectIndex, imageIndex, imageId) {
