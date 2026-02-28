@@ -2573,9 +2573,20 @@
                 <button class="tab" id="taskMonitorTab" onclick="switchTab('availability')" style="display: none;">Task Monitor</button>
                 <button class="tab" id="calendarTab" onclick="switchTab('calendar')" style="display: none;">📅 Calendar</button>
             </div>
-            <div style="margin-top: 15px; padding: 10px; background: #f7fafc; border-radius: 8px; display: inline-flex; align-items: center; gap: 8px;">
-                <input type="checkbox" id="showAdvancedMenus" onchange="toggleAdvancedMenus()" style="width: 18px; height: 18px; cursor: pointer;">
-                <label for="showAdvancedMenus" style="cursor: pointer; font-size: 14px; font-weight: 500; color: #4a5568;">Show Advanced Menus (Task Monitor, Calendar)</label>
+            <div style="margin-top: 15px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                <div style="padding: 10px; background: #f7fafc; border-radius: 8px; display: inline-flex; align-items: center; gap: 8px;">
+                    <input type="checkbox" id="showAdvancedMenus" onchange="toggleAdvancedMenus()" style="width: 18px; height: 18px; cursor: pointer;">
+                    <label for="showAdvancedMenus" style="cursor: pointer; font-size: 14px; font-weight: 500; color: #4a5568;">Show Advanced Menus (Task Monitor, Calendar)</label>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="export-btn" onclick="exportData()" style="padding: 10px 20px; font-size: 14px;">
+                        💾 Backup All Data
+                    </button>
+                    <button class="import-btn" onclick="document.getElementById('importFileHeader').click()" style="padding: 10px 20px; font-size: 14px;">
+                        📥 Import Data
+                    </button>
+                    <input type="file" id="importFileHeader" accept=".json" onchange="importData(event)" style="display: none;">
+                </div>
             </div>
         </header>
 
