@@ -964,6 +964,22 @@
             border-radius: 3px;
         }
 
+        /* First row header cells (Item + Month headers row) */
+        .master-timeline-header-cell.header-row-1 {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            background: #edf2f7;
+        }
+
+        /* Second row header cells (Week # + Week number headers) */
+        .master-timeline-header-cell.header-row-2 {
+            position: sticky;
+            top: 32px; /* Positioned below month headers */
+            z-index: 19;
+            background: #edf2f7;
+        }
+
         .master-timeline-month-header {
             text-align: center;
             font-size: 11px;
@@ -975,6 +991,9 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            position: sticky;
+            top: 0;
+            z-index: 18;
         }
 
         .master-timeline-row-header {
@@ -7436,7 +7455,7 @@ End: ${endDate ? endDate.toLocaleDateString() : '—'}">
                     
                     <div class="master-timeline-grid">
                         <!-- Month Headers -->
-                        <div class="master-timeline-header-cell">Item</div>
+                        <div class="master-timeline-header-cell header-row-1">Item</div>
                         ${(() => {
                             let lastMonth = -1;
                             let monthSpan = 0;
@@ -7465,8 +7484,8 @@ End: ${endDate ? endDate.toLocaleDateString() : '—'}">
                         })()}
                         
                         <!-- Week Headers -->
-                        <div class="master-timeline-header-cell" style="font-size: 8px;">Week #</div>
-                        ${weekStructure.map(w => `<div class="master-timeline-header-cell">${w.weekNumber}</div>`).join('')}
+                        <div class="master-timeline-header-cell header-row-2" style="font-size: 8px;">Week #</div>
+                        ${weekStructure.map(w => `<div class="master-timeline-header-cell header-row-2">${w.weekNumber}</div>`).join('')}
                         
                         <!-- Data Rows -->
                         ${rowHtml}
