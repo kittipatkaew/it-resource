@@ -93,12 +93,24 @@ def backup_endpoint():
             
             # Import projects
             for project_data in new_data['projects']:
+                # Handle delivery date
+                delivery_date = None
+                if project_data.get('deliveryDate'):
+                    try:
+                        from datetime import datetime as dt
+                        delivery_date = dt.fromisoformat(project_data['deliveryDate'].replace('Z', '+00:00')).date()
+                    except:
+                        pass
+                
                 project = Project(
                     name=project_data['name'],
                     description=project_data.get('description', ''),
                     status=project_data.get('status', 'planning'),
                     starred=project_data.get('starred', False),
-                    meeting_minutes=project_data.get('meetingMinutes', '')
+                    meeting_minutes=project_data.get('meetingMinutes', ''),
+                    channels=project_data.get('channels', []),
+                    applications=project_data.get('applications', []),
+                    delivery_date=delivery_date
                 )
                 db.session.add(project)
                 db.session.flush()
@@ -1225,12 +1237,24 @@ def import_data():
         
         # Import projects
         for project_data in data['projects']:
+            # Handle delivery date
+            delivery_date = None
+            if project_data.get('deliveryDate'):
+                try:
+                    from datetime import datetime as dt
+                    delivery_date = dt.fromisoformat(project_data['deliveryDate'].replace('Z', '+00:00')).date()
+                except:
+                    pass
+            
             project = Project(
                 name=project_data['name'],
                 description=project_data.get('description', ''),
                 status=project_data.get('status', 'planning'),
                 starred=project_data.get('starred', False),
-                meeting_minutes=project_data.get('meetingMinutes', '')
+                meeting_minutes=project_data.get('meetingMinutes', ''),
+                channels=project_data.get('channels', []),
+                applications=project_data.get('applications', []),
+                delivery_date=delivery_date
             )
             db.session.add(project)
             db.session.flush()

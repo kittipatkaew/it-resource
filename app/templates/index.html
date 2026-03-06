@@ -7396,14 +7396,18 @@ End: ${endDate ? endDate.toLocaleDateString() : '—'}">
                         `;
                         
                         // LEVEL 4: Task Rows
-                        // Sort tasks: incomplete first, completed at bottom
+                        // Sort tasks by start date ascending (tasks without dates at the end)
                         const sortedTasks = tasks.sort((a, b) => {
-                            // Sort by completion status (incomplete = false comes first)
-                            if (!a.completed && b.completed) return -1;
-                            if (a.completed && !b.completed) return 1;
+                            const aStartDate = a.startDate ? new Date(a.startDate) : null;
+                            const bStartDate = b.startDate ? new Date(b.startDate) : null;
                             
-                            // If both have same completion status, maintain relative order
-                            return 0;
+                            // Tasks without start date go to the end
+                            if (!aStartDate && !bStartDate) return 0;
+                            if (!aStartDate) return 1;
+                            if (!bStartDate) return -1;
+                            
+                            // Sort by start date ascending
+                            return aStartDate - bStartDate;
                         });
                         
                         sortedTasks.forEach(task => {
