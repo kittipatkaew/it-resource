@@ -1839,6 +1839,69 @@
             margin-top: 20px;
         }
 
+        .member-search-wrapper {
+            position: relative;
+        }
+
+        .member-search-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            max-height: 250px;
+            overflow-y: auto;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            z-index: 1001;
+            display: none;
+        }
+
+        .member-search-dropdown.active {
+            display: block;
+        }
+
+        .member-search-item {
+            padding: 12px 15px;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .member-search-item:last-child {
+            border-bottom: none;
+        }
+
+        .member-search-item:hover {
+            background: #f5f7fa;
+        }
+
+        .member-search-item.selected {
+            background: #e8ecff;
+        }
+
+        .member-search-item-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 2px;
+        }
+
+        .member-search-item-role {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .member-search-no-results {
+            padding: 15px;
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+        }
+
         .btn {
             padding: 10px 20px;
             border: none;
@@ -2867,9 +2930,11 @@
         <div class="modal-content">
             <div class="modal-header">Assign Member to <span id="assignProjectName"></span></div>
             <div class="form-group">
-                <label>Select Team Member</label>
-                <select id="assignMemberSelect">
-                </select>
+                <label>Search Team Member</label>
+                <div class="member-search-wrapper">
+                    <input type="text" id="assignMemberSearch" placeholder="Type to search member..." autocomplete="off">
+                    <div id="assignMemberDropdown" class="member-search-dropdown"></div>
+                </div>
             </div>
             <div class="modal-actions">
                 <button class="btn btn-primary" onclick="assignMemberToProject()">Assign</button>
@@ -3119,6 +3184,7 @@
                         channels: project.channels || [],
                         applications: project.applications || [],
                         deliveryDate: project.deliveryDate || null,
+                        links: project.links || [],
                         tasks: project.tasks || []
                     })
                 });
@@ -3431,6 +3497,7 @@
                         channels: project.channels || [],
                         applications: project.applications || [],
                         deliveryDate: project.deliveryDate || null,
+                        links: project.links || [],
                         tasks: project.tasks || []
                     })
                 });
@@ -5981,11 +6048,14 @@
         // Assign member modal
         let currentAssignProject = null;
 
+        let availableMembersForAssign = [];
+        let selectedMemberForAssign = null;
+
         function openAssignModal(projectName) {
             currentAssignProject = projectName;
             document.getElementById('assignProjectName').textContent = projectName;
             
-            const select = document.getElementById('assignMemberSelect');
+            const searchInput = document.getElementById('assignMemberSearch');
             const project = projects.find(p => p.name === projectName);
             
             if (!project) {
@@ -5993,9 +6063,9 @@
                 return;
             }
             
-            const availableMembers = teamMembers.filter(m => !project.team.includes(m.name));
+            availableMembersForAssign = teamMembers.filter(m => !project.team.includes(m.name));
             
-            if (availableMembers.length === 0) {
+            if (availableMembersForAssign.length === 0) {
                 if (teamMembers.length === 0) {
                     alert('No team members available. Please add team members first in the Team Overview tab.');
                     return;
@@ -6005,11 +6075,22 @@
                 }
             }
             
-            select.innerHTML = availableMembers.map(m => 
-                `<option value="${m.name}">${m.name} - ${m.role}</option>`
-            ).join('');
+            // Reset search input and selection
+            searchInput.value = '';
+            selectedMemberForAssign = null;
+            
+            // Setup search functionality
+            setupMemberSearch();
+            
+            // Show all members initially
+            displayMemberSearchResults(availableMembersForAssign);
             
             document.getElementById('assignModal').classList.add('active');
+            
+            // Focus on search input
+            setTimeout(() => {
+                searchInput.focus();
+            }, 100);
             
             // Add click outside to close
             setTimeout(() => {
@@ -6022,16 +6103,93 @@
             }, 100);
         }
 
+        function setupMemberSearch() {
+            const searchInput = document.getElementById('assignMemberSearch');
+            const dropdown = document.getElementById('assignMemberDropdown');
+            
+            // Remove existing event listeners by cloning
+            const newSearchInput = searchInput.cloneNode(true);
+            searchInput.parentNode.replaceChild(newSearchInput, searchInput);
+            
+            // Add search input listener
+            newSearchInput.addEventListener('input', function(e) {
+                const searchTerm = e.target.value.toLowerCase();
+                const filteredMembers = availableMembersForAssign.filter(m => 
+                    m.name.toLowerCase().includes(searchTerm) || 
+                    m.role.toLowerCase().includes(searchTerm)
+                );
+                displayMemberSearchResults(filteredMembers);
+            });
+            
+            // Show dropdown on focus
+            newSearchInput.addEventListener('focus', function() {
+                dropdown.classList.add('active');
+            });
+            
+            // Hide dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.member-search-wrapper')) {
+                    dropdown.classList.remove('active');
+                }
+            });
+        }
+
+        function displayMemberSearchResults(members) {
+            const dropdown = document.getElementById('assignMemberDropdown');
+            
+            if (members.length === 0) {
+                dropdown.innerHTML = '<div class="member-search-no-results">No members found</div>';
+                dropdown.classList.add('active');
+                return;
+            }
+            
+            dropdown.innerHTML = members.map(m => `
+                <div class="member-search-item" onclick="selectMemberForAssign('${m.name.replace(/'/g, "\\'")}')"
+                     data-member="${m.name}">
+                    <div class="member-search-item-name">${m.name}</div>
+                    <div class="member-search-item-role">${m.role}</div>
+                </div>
+            `).join('');
+            
+            dropdown.classList.add('active');
+        }
+
+        function selectMemberForAssign(memberName) {
+            selectedMemberForAssign = memberName;
+            const searchInput = document.getElementById('assignMemberSearch');
+            const member = availableMembersForAssign.find(m => m.name === memberName);
+            
+            if (member) {
+                searchInput.value = `${member.name} - ${member.role}`;
+            }
+            
+            // Hide dropdown
+            document.getElementById('assignMemberDropdown').classList.remove('active');
+            
+            // Highlight selected item
+            document.querySelectorAll('.member-search-item').forEach(item => {
+                if (item.getAttribute('data-member') === memberName) {
+                    item.classList.add('selected');
+                } else {
+                    item.classList.remove('selected');
+                }
+            });
+        }
+
         function closeAssignModal() {
             document.getElementById('assignModal').classList.remove('active');
+            document.getElementById('assignMemberDropdown').classList.remove('active');
             currentAssignProject = null;
+            selectedMemberForAssign = null;
+            availableMembersForAssign = [];
         }
 
         function assignMemberToProject() {
-            const memberName = document.getElementById('assignMemberSelect').value;
-            if (currentAssignProject && memberName) {
-                addMemberToProject(currentAssignProject, memberName);
+            if (currentAssignProject && selectedMemberForAssign) {
+                addMemberToProject(currentAssignProject, selectedMemberForAssign);
                 closeAssignModal();
+            } else {
+                alert('Please select a team member');
             }
         }
 
@@ -6998,24 +7156,25 @@
                 return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
             }
             
+            // Helper function to get Monday of a given ISO week number
+            function getMondayOfWeek(year, weekNumber) {
+                // ISO week 1 is the week with the first Thursday of the year
+                // Find January 4th (always in week 1)
+                const jan4 = new Date(year, 0, 4);
+                
+                // Find Monday of week 1
+                const jan4Day = jan4.getDay() || 7; // Convert Sunday (0) to 7
+                const week1Monday = new Date(year, 0, 4 - jan4Day + 1);
+                
+                // Add (weekNumber - 1) weeks
+                const targetMonday = new Date(week1Monday);
+                targetMonday.setDate(week1Monday.getDate() + (weekNumber - 1) * 7);
+                
+                return targetMonday;
+            }
+            
             // Build week structure based on actual calendar
             const weekStructure = [];
-            const monthWeekMapping = {}; // Track which weeks belong to which months
-            
-            // Go through each month
-            for (let monthIdx = 0; monthIdx < 12; monthIdx++) {
-                const daysInMonth = new Date(currentYear, monthIdx + 1, 0).getDate();
-                const weeksInMonth = new Set();
-                
-                // Find all unique weeks in this month
-                for (let day = 1; day <= daysInMonth; day++) {
-                    const date = new Date(currentYear, monthIdx, day);
-                    const weekNum = getWeekNumber(date);
-                    weeksInMonth.add(weekNum);
-                }
-                
-                monthWeekMapping[monthIdx] = Array.from(weeksInMonth).sort((a, b) => a - b);
-            }
             
             // Create week structure for all weeks in the year (1 through 52 or 53)
             const lastDay = new Date(currentYear, 11, 31);
@@ -7024,19 +7183,19 @@
             
             // Build sequential week structure from week 1 to last week of the year
             for (let weekNum = 1; weekNum <= totalWeeksInYear; weekNum++) {
-                // Find which month this week primarily belongs to
-                let primaryMonth = 0;
-                for (let m = 0; m < 12; m++) {
-                    if (monthWeekMapping[m].includes(weekNum)) {
-                        primaryMonth = m;
-                        break;
-                    }
-                }
+                // Get Monday of this week
+                const monday = getMondayOfWeek(currentYear, weekNum);
+                
+                // Determine the month based on where Monday falls
+                const monthIndex = monday.getMonth();
+                const mondayFormatted = `${monday.getDate()}`;
                 
                 weekStructure.push({
                     weekNumber: weekNum,
-                    month: months[primaryMonth],
-                    monthIndex: primaryMonth
+                    monday: monday,
+                    mondayLabel: mondayFormatted,
+                    month: months[monthIndex],
+                    monthIndex: monthIndex
                 });
             }
             
@@ -7396,8 +7555,13 @@ End: ${endDate ? endDate.toLocaleDateString() : '—'}">
                         `;
                         
                         // LEVEL 4: Task Rows
-                        // Sort tasks by start date ascending (tasks without dates at the end)
-                        const sortedTasks = tasks.sort((a, b) => {
+                        // Sort tasks: completed first, then by start date ascending (tasks without dates at the end)
+                        const sortedTasks = [...tasks].sort((a, b) => {
+                            // First priority: completed tasks come first
+                            if (a.completed && !b.completed) return -1;
+                            if (!a.completed && b.completed) return 1;
+                            
+                            // Second priority: sort by start date
                             const aStartDate = a.startDate ? new Date(a.startDate) : null;
                             const bStartDate = b.startDate ? new Date(b.startDate) : null;
                             
@@ -7488,8 +7652,8 @@ End: ${endDate ? endDate.toLocaleDateString() : '—'}">
                         })()}
                         
                         <!-- Week Headers -->
-                        <div class="master-timeline-header-cell header-row-2" style="font-size: 8px;">Week #</div>
-                        ${weekStructure.map(w => `<div class="master-timeline-header-cell header-row-2">${w.weekNumber}</div>`).join('')}
+                        <div class="master-timeline-header-cell header-row-2" style="font-size: 8px;">Monday</div>
+                        ${weekStructure.map(w => `<div class="master-timeline-header-cell header-row-2" title="Week ${w.weekNumber}">${w.mondayLabel}</div>`).join('')}
                         
                         <!-- Data Rows -->
                         ${rowHtml}
@@ -7691,11 +7855,11 @@ ${endDate ? 'End: ' + endDate.toLocaleDateString() : ''}">
                 return '<div style="padding: 10px 20px; color: #a0aec0; font-size: 13px;">No tasks in this project</div>';
             }
             
-            // Sort tasks: incomplete first, completed at bottom
-            const sortedTasks = tasks.sort((a, b) => {
-                // Sort by completion status (incomplete = false comes first)
-                if (!a.completed && b.completed) return -1;
-                if (a.completed && !b.completed) return 1;
+            // Sort tasks: completed first, incomplete at bottom
+            const sortedTasks = [...tasks].sort((a, b) => {
+                // Sort by completion status (completed = true comes first)
+                if (a.completed && !b.completed) return -1;
+                if (!a.completed && b.completed) return 1;
                 
                 // If both have same completion status, maintain relative order
                 return 0;

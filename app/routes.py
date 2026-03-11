@@ -774,6 +774,20 @@ def sync_project():
                 else:
                     existing.delivery_date = None
             
+            # Handle links if provided
+            if 'links' in data:
+                # Remove all existing links for this project
+                ProjectLink.query.filter_by(project_id=existing.id).delete()
+                
+                # Add new links from data
+                for link_data in data['links']:
+                    link = ProjectLink(
+                        project_id=existing.id,
+                        url=link_data.get('url', ''),
+                        label=link_data.get('title') or link_data.get('label', '')
+                    )
+                    db.session.add(link)
+            
             db.session.commit()
             return jsonify({'message': 'Project updated with existing database record', 'project': existing.to_dict()}), 200
         
@@ -799,6 +813,16 @@ def sync_project():
         
         db.session.add(project)
         db.session.flush()  # Get the ID
+        
+        # Add links if provided
+        if 'links' in data and data['links']:
+            for link_data in data['links']:
+                link = ProjectLink(
+                    project_id=project.id,
+                    url=link_data.get('url', ''),
+                    label=link_data.get('title') or link_data.get('label', '')
+                )
+                db.session.add(link)
         
         # Add tasks if provided
         if 'tasks' in data and data['tasks']:
@@ -887,6 +911,20 @@ def update_project(project_id):
                     project.delivery_date = None
             else:
                 project.delivery_date = None
+        
+        # Handle links if provided (full replacement)
+        if 'links' in data:
+            # Remove all existing links for this project
+            ProjectLink.query.filter_by(project_id=project_id).delete()
+            
+            # Add new links from data
+            for link_data in data['links']:
+                link = ProjectLink(
+                    project_id=project_id,
+                    url=link_data.get('url', ''),
+                    label=link_data.get('title') or link_data.get('label', '')
+                )
+                db.session.add(link)
         
         # Handle tasks if provided (full replacement)
         if 'tasks' in data:
