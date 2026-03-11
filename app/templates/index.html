@@ -214,26 +214,65 @@
             font-size: 13px;
             color: #666;
             margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .workload-months {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .workload-month-item {
             display: flex;
             justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: #f5f7fa;
+            border-radius: 6px;
+            font-size: 12px;
         }
 
-        .workload-bar {
-            height: 8px;
-            background: #e0e0e0;
+        .workload-month-name {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .workload-month-days {
+            color: #333;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .workload-task-count {
+            font-size: 11px;
+            color: #667eea;
+            background: #e8ecff;
+            padding: 2px 6px;
             border-radius: 4px;
-            overflow: hidden;
         }
 
-        .workload-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-            border-radius: 4px;
-            transition: width 0.3s;
+        .workload-no-tasks {
+            font-size: 12px;
+            color: #999;
+            font-style: italic;
+            padding: 8px 0;
         }
 
-        .workload-fill.high {
-            background: linear-gradient(90deg, #f093fb 0%, #f5576c 100%);
+        .workload-total {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 2px solid #e0e0e0;
+            font-size: 13px;
+            font-weight: 700;
+            color: #667eea;
+            display: flex;
+            justify-content: space-between;
         }
 
         /* Projects Styles */
@@ -3432,40 +3471,140 @@
         // Render team members
         function renderTeam() {
             const grid = document.getElementById('teamGrid');
-            grid.innerHTML = teamMembers.map((member, index) => `
-                <div class="team-card" draggable="true" data-member="${member.name}" data-index="${index}">
-                    <button class="edit-member-btn" onclick="editTeamMember(${index})" title="Edit team member">✎</button>
-                    <button class="delete-member-btn" onclick="removeTeamMember('${member.name}')" title="Remove team member">×</button>
-                    <div class="team-header">
-                        <div class="avatar">${member.name.split(' ').map(n => n[0]).join('')}</div>
-                        <div class="team-info">
-                            <h3>${member.name}</h3>
-                            <div class="role">${member.role}</div>
+            grid.innerHTML = teamMembers.map((member, index) => {
+                const monthlyWorkload = getMemberMonthlyWorkload(member.name);
+                const monthEntries = Object.entries(monthlyWorkload).sort((a, b) => {
+                    // Sort by date (most recent first)
+                    const dateA = new Date(a[0]);
+                    const dateB = new Date(b[0]);
+                    return dateB - dateA;
+                });
+                
+                const totalMandays = monthEntries.reduce((sum, [month, data]) => sum + data.mandays, 0);
+                const totalTasks = monthEntries.reduce((sum, [month, data]) => sum + data.taskCount, 0);
+                
+                const workloadHTML = monthEntries.length > 0 
+                    ? `<div class="workload-months">
+                        ${monthEntries.map(([month, data]) => `
+                            <div class="workload-month-item">
+                                <span class="workload-month-name">${month}</span>
+                                <span class="workload-month-days">
+                                    <span>${data.mandays} MD</span>
+                                    <span class="workload-task-count">${data.taskCount} task${data.taskCount !== 1 ? 's' : ''}</span>
+                                </span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="workload-total">
+                        <span>Total:</span>
+                        <span>${totalMandays} MD · ${totalTasks} task${totalTasks !== 1 ? 's' : ''}</span>
+                    </div>`
+                    : '<div class="workload-no-tasks">No tasks assigned with dates</div>';
+                
+                return `
+                    <div class="team-card" draggable="true" data-member="${member.name}" data-index="${index}">
+                        <button class="edit-member-btn" onclick="editTeamMember(${index})" title="Edit team member">✎</button>
+                        <button class="delete-member-btn" onclick="removeTeamMember('${member.name}')" title="Remove team member">×</button>
+                        <div class="team-header">
+                            <div class="avatar">${member.name.split(' ').map(n => n[0]).join('')}</div>
+                            <div class="team-info">
+                                <h3>${member.name}</h3>
+                                <div class="role">${member.role}</div>
+                            </div>
+                        </div>
+                        <div class="skills">
+                            ${member.skills.map(skill => `<span class="skill-tag">${skill}</span>`).join('')}
+                        </div>
+                        <div class="workload">
+                            <div class="workload-label">Man-days by Month</div>
+                            ${workloadHTML}
+                        </div>
+                        <div style="margin-top: 12px; font-size: 13px; color: #666;">
+                            Projects: ${member.projects.join(', ') || 'None'}
                         </div>
                     </div>
-                    <div class="skills">
-                        ${member.skills.map(skill => `<span class="skill-tag">${skill}</span>`).join('')}
-                    </div>
-                    <div class="workload">
-                        <div class="workload-label">
-                            <span>Workload</span>
-                            <span>${member.workload}%</span>
-                        </div>
-                        <div class="workload-bar">
-                            <div class="workload-fill ${member.workload > 80 ? 'high' : ''}" style="width: ${member.workload}%"></div>
-                        </div>
-                    </div>
-                    <div style="margin-top: 12px; font-size: 13px; color: #666;">
-                        Projects: ${member.projects.join(', ') || 'None'}
-                    </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
 
             // Add drag event listeners
             document.querySelectorAll('.team-card').forEach(card => {
                 card.addEventListener('dragstart', handleDragStart);
                 card.addEventListener('dragend', handleDragEnd);
             });
+        }
+
+        // Helper function to calculate working days (excluding weekends) between two dates
+        function calculateWorkingDays(startDate, endDate) {
+            if (!startDate || !endDate) return 0;
+            
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            
+            if (start > end) return 0;
+            
+            let workingDays = 0;
+            const current = new Date(start);
+            
+            while (current <= end) {
+                const dayOfWeek = current.getDay();
+                // 0 = Sunday, 6 = Saturday
+                if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+                    workingDays++;
+                }
+                current.setDate(current.getDate() + 1);
+            }
+            
+            return workingDays;
+        }
+
+        // Helper function to get month-year string from date
+        function getMonthYear(date) {
+            const d = new Date(date);
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            return `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+        }
+
+        // Helper function to get monthly workload summary for a member
+        function getMemberMonthlyWorkload(memberName) {
+            const monthlyWorkload = {};
+            
+            // Iterate through all projects
+            projects.forEach(project => {
+                // Check tasks
+                if (project.tasks) {
+                    project.tasks.forEach(task => {
+                        // Check if task is assigned to this member
+                        if (task.assignee === memberName && task.startDate && task.endDate) {
+                            const workingDays = calculateWorkingDays(task.startDate, task.endDate);
+                            const monthYear = getMonthYear(task.startDate);
+                            
+                            if (!monthlyWorkload[monthYear]) {
+                                monthlyWorkload[monthYear] = { mandays: 0, taskCount: 0 };
+                            }
+                            monthlyWorkload[monthYear].mandays += workingDays;
+                            monthlyWorkload[monthYear].taskCount += 1;
+                        }
+                        
+                        // Check subtasks
+                        if (task.subtasks) {
+                            task.subtasks.forEach(subtask => {
+                                if (subtask.assignee === memberName && subtask.startDate && subtask.endDate) {
+                                    const workingDays = calculateWorkingDays(subtask.startDate, subtask.endDate);
+                                    const monthYear = getMonthYear(subtask.startDate);
+                                    
+                                    if (!monthlyWorkload[monthYear]) {
+                                        monthlyWorkload[monthYear] = { mandays: 0, taskCount: 0 };
+                                    }
+                                    monthlyWorkload[monthYear].mandays += workingDays;
+                                    monthlyWorkload[monthYear].taskCount += 1;
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+            
+            return monthlyWorkload;
         }
 
         // Helper function to update project to database
